@@ -1,2 +1,4 @@
-# swot-analysis-web
-SWOT Web application that orchestrates Python and Octave analysis
+# swot-analysis-poc
+SWOT Analysis PoC using Python and Octave backend
+
+Please see deployment notes for configuration
