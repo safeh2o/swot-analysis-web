@@ -4,13 +4,18 @@ var mailgun = require('mailgun-js')({apiKey: API_KEY, domain: DOMAIN, timeout: N
 import { readFileSync, readdir} from 'fs';
 import { basename, join } from 'path';
 
-export function mail(from, to, subject, content) {
+export function mail(from, to, subject, content, attachment) {
   const data = {
     from: from,
     to: to,
     subject: subject,
-    html: content
+    html: content,
+    inline: null
   };
+
+  if (attachment) {
+    data.inline = attachment;
+  }
 
   mailgun.messages().send(data, (error, body) => {
     if (error) {
@@ -20,12 +25,12 @@ export function mail(from, to, subject, content) {
   });
 }
 
-export function mailUser(to, subject, content) {
-  mail(process.env.FROM_ADDRESS, to, subject, content);
+export function mailUser(to, subject, content, attachment) {
+  mail(process.env.FROM_ADDRESS, to, subject, content, attachment);
 }
 
 export function mailAdmin(messageBody) {
-  mail(process.env.FROM_ADDRESS, process.env.ADMIN_EMAIL, 'Message from SWOT Analyzer Application', messageBody);
+  mail(process.env.FROM_ADDRESS, process.env.ADMIN_EMAIL, 'Message from SWOT Analyzer Application', messageBody, null);
 }
 
 export async function mailAllFilesInFolder(folder, to, from, subject, content) {

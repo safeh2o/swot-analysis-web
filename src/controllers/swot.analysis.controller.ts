@@ -32,9 +32,9 @@ export default class SwotAnalysisController {
       try {
         // analyze python
         let content = await this.analyzePython(req.query.filename, req.query.country, req.query.project, req.query.fieldsite, req.query.dataset);
-
+	const reportImage = join(process.env.PYTHON_OUTPUT_FOLDER, req.query.filename.replace(".csv", ".jpg"));
         // email results to recipient
-        mailer.mailUser(req.query.recipient, process.env.PYTHON_EMAIL_SUBJECT, content);
+        mailer.mailUser(req.query.recipient, process.env.PYTHON_EMAIL_SUBJECT, content, reportImage);
       } catch (e) {
         mailer.mailAdmin(`Error occurred during Python analysis for : ${JSON.stringify(e)}. Query: ${JSON.stringify(req.query)}`);
       }
@@ -54,6 +54,7 @@ export default class SwotAnalysisController {
     unlinkSync(join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, filename));
     unlinkSync(join(process.env.PYTHON_OUTPUT_FOLDER, filename));
     unlinkSync(join(process.env.PYTHON_OUTPUT_FOLDER, filename.replace(".csv", ".html")));
+    unlinkSync(join(process.env.PYTHON_OUTPUT_FOLDER, filename.replace(".csv", ".jpg")));
     rimraf.sync(join(env.OCTAVE_OUTPUT_FOLDER, filename));
   }
 
