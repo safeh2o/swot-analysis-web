@@ -44,7 +44,7 @@ export default class SwotAnalysisController {
         mailer.mailAdmin(`Error occurred during Octave analysis for : ${JSON.stringify(e)}. Query: ${JSON.stringify(req.query)}`);
       }
     } finally {
-       this.cleanUpFiles(req.query.filename);
+      this.cleanUpFiles(req.query.filename);
     }
 
     res.json({processing: 'true'});
