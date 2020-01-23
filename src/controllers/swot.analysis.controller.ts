@@ -36,13 +36,13 @@ export default class SwotAnalysisController {
         // email results to recipient
         mailer.mailUser(req.query.recipient, process.env.PYTHON_EMAIL_SUBJECT, content, reportImage);
       } catch (e) {
-        mailer.mailUser(req.query.recipient, process.env.PYTHON_EMAIL_SUBJECT + " - ERROR", "There was an error running the python analysis of this data. Please contact the administrator ( admin@safeh2o.app ) for more information.");
+        mailer.mailUser(req.query.recipient, process.env.PYTHON_EMAIL_SUBJECT + " - ERROR", "There was an error running the python analysis of this data. Please contact the administrator ( admin@safeh2o.app ) for more information.", null);
         mailer.mailAdmin(`Error occurred during Python analysis for : ${JSON.stringify(e)}. Query: ${JSON.stringify(req.query)}`);
       }
       try {
         await this.analyzeOctave(req.query.filename, req.query.country, req.query.project, req.query.fieldsite, req.query.dataset, req.query.recipient);
       } catch (e) {
-        mailer.mailUser(req.query.recipient, process.env.OCTAVE_EMAIL_SUBJECT + " - ERROR", "There was an error running the octave analysis of this data. Please contact the administrator ( admin@safeh2o.app ) for more information.");
+        mailer.mailUser(req.query.recipient, process.env.OCTAVE_EMAIL_SUBJECT + " - ERROR", "There was an error running the octave analysis of this data. Please contact the administrator ( admin@safeh2o.app ) for more information.", null);
         mailer.mailAdmin(`Error occurred during Octave analysis for : ${JSON.stringify(e)}. Query: ${JSON.stringify(req.query)}`);
       }
     } finally {
