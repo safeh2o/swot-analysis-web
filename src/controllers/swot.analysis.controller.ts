@@ -66,13 +66,14 @@ export default class SwotAnalysisController {
       const runner = new PythonAnalysisRunner();
       const nameHTML = name.replace('.csv', '.html');
       const nameHTMLInFolder = join(process.env.PYTHON_OUTPUT_FOLDER, nameHTML);
-      const reportImage = join(process.env.PYTHON_OUTPUT_FOLDER, nameHTML.replace('.csv', '.jpg'));
+      const reportImage = name.replace('.csv', '.jpg');
+      const reportImageInFolder = join(process.env.PYTHON_OUTPUT_FOLDER, reportImage);
       try {
         await runner.run(join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, name), process.env.PYTHON_OUTPUT_FOLDER, name);
         // const storageResultCSV = await storage.save("swot-analysis-python", nameCSV, join(env.PYTHON_WORKING_DIR, nameCSV));
         // save in country/project/fieldsite/dataset_id/analysis/python
         const pythonResults = await storage.save(country, `${project}/${fieldsite}/${dataset}/analysis/python/${nameHTML}`, nameHTMLInFolder);
-        await storage.save(country, `${project}/${fieldsite}/${dataset}/analysis/python/${nameHTML}`, reportImage);
+        await storage.save(country, `${project}/${fieldsite}/${dataset}/analysis/python/${reportImage}`, reportImageInFolder);
       } catch (e) {
         reject(e);
       }
