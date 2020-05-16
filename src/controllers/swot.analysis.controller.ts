@@ -4,7 +4,7 @@ import { OctaveAnalysisRunner } from '../analysis/octave/octave.runner';
 import { BlobStorage } from '../storage/blob.service';
 import { env } from 'process';
 import { join, basename } from 'path';
-import { readFileSync, readdir, unlinkSync, existsSync, mkdirSync  } from 'fs';
+import { readFileSync, readdir, unlinkSync, existsSync, mkdirSync, unlink  } from 'fs';
 import * as mailer from '../utils/mailer';
 import * as rimraf from 'rimraf';
 import { AnalysisReport } from '../utils/report';
@@ -78,13 +78,21 @@ export default class SwotAnalysisController {
   }
 
   public cleanUpFiles(filename) {
-    unlinkSync(join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, filename));
-    unlinkSync(join(process.env.PYTHON_OUTPUT_FOLDER, filename));
-    unlinkSync(join(process.env.PYTHON_OUTPUT_FOLDER, filename.replace('.csv', '.html')));
-    unlinkSync(join(process.env.PYTHON_OUTPUT_FOLDER, filename.replace('.csv', '.jpg')));
-    unlinkSync(join(process.env.PYTHON_OUTPUT_FOLDER, filename.replace('.csv', '-frc.jpg')));
-    unlinkSync(join(process.env.PYTHON_OUTPUT_FOLDER, filename.replace('.csv', '.pdf')));
+    this.tryDelete(join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, filename));
+    this.tryDelete(join(process.env.PYTHON_OUTPUT_FOLDER, filename));
+    this.tryDelete(join(process.env.PYTHON_OUTPUT_FOLDER, filename.replace('.csv', '.html')));
+    this.tryDelete(join(process.env.PYTHON_OUTPUT_FOLDER, filename.replace('.csv', '.jpg')));
+    this.tryDelete(join(process.env.PYTHON_OUTPUT_FOLDER, filename.replace('.csv', '-frc.jpg')));
+    this.tryDelete(join(process.env.PYTHON_OUTPUT_FOLDER, filename.replace('.csv', '.pdf')));
     rimraf.sync(join(env.OCTAVE_OUTPUT_FOLDER, filename));
+  }
+
+  private tryDelete(filename) {
+    try {
+      unlinkSync(filename);
+    } catch(e) {
+      console.log(`Error deleting file ${filename}`, e);
+    }
   }
 
   public async analyzePython(name: string, country, project, fieldsite, dataset): Promise<string> {
