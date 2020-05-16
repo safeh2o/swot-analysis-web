@@ -48,7 +48,7 @@ export default class SwotAnalysisController {
 
       try {
         const report = new AnalysisReport();
-        const reportDataLines = readFileSync(join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, name), "utf8").split('\n').length.toString();
+        const reportDataLines = readFileSync(join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, req.query.filename), "utf8").split('\n').length.toString();
       
         await report.pdf({
           pythonFolder: process.env.PYTHON_OUTPUT_FOLDER,
