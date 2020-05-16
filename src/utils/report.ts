@@ -64,8 +64,16 @@ export class AnalysisReport {
       }
 
       //inject template into report
-      const templatePath = Path.resolve('./static/report-template.html')
-      const content = await ReadFile(templatePath, 'utf8')
+      let templatePath, content;
+      try {
+        //app is running inside dist folder
+        templatePath = Path.resolve('./static/report-template.html')
+        content = await ReadFile(templatePath, 'utf8')
+      } catch (e) {
+        //app might be running outside dist folder
+        templatePath = Path.resolve('./dist/static/report-template.html')
+        content = await ReadFile(templatePath, 'utf8')
+      }
       const template = Handlebars.compile(content)
       return template(data)
     } catch (error) {
