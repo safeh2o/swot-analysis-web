@@ -4,10 +4,10 @@ import { OctaveAnalysisRunner } from '../analysis/octave/octave.runner';
 import { BlobStorage } from '../storage/blob.service';
 import { env } from 'process';
 import { join, basename } from 'path';
-import { readFileSync, readdir, unlinkSync } from 'fs';
+import { readFileSync, readdir, unlinkSync, existsSync, mkdirSync  } from 'fs';
 import * as mailer from '../utils/mailer';
-import { existsSync, mkdirSync } from 'fs';
 import * as rimraf from 'rimraf';
+import { AnalysisReport } from '../utils/report';
 
 export default class SwotAnalysisController {
 
@@ -45,6 +45,31 @@ export default class SwotAnalysisController {
         mailer.mailUser(req.query.recipient, process.env.OCTAVE_EMAIL_SUBJECT + ' - ERROR', 'There was an error running the octave analysis of this data. Please contact the administrator ( admin@safeh2o.app ) for more information.', null);
         mailer.mailAdmin(`Error occurred during Octave analysis for : ${JSON.stringify(e)}. Query: ${JSON.stringify(req.query)}`);
       }
+
+      try {
+        const report = new AnalysisReport();
+        const reportDataLines = readFileSync(join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, name), "utf8").split('\n').length.toString();
+      
+        report.pdf({
+          pythonFolder: process.env.PYTHON_OUTPUT_FOLDER,
+          octaveFolder: process.env.OCTAVE_OUTPUT_FOLDER,
+          outputFolder: process.env.PYTHON_OUTPUT_FOLDER,
+          filename: req.query.filename.replace('.csv', ''),
+          reportDate: new Date(Date.now()).toLocaleDateString("en-CA"),
+          countryName: req.query.country,
+          projectName: req.query.project,
+          fieldSiteName: req.query.fieldsite,
+          datasetName: req.query.dataset,
+          numSamples: reportDataLines,
+          numOptimize: req.query.filename.split("__")[req.query.filename.split("__").length-2],
+          confidenceLevel: req.query.filename.split("__")[req.query.filename.split("__").length-1],
+        });
+        mailer.mailUser(req.query.recipient, process.env.EMAIL_SUBJECT, process.env.EMAIL_BODY, join(process.env.PYTHON_OUTPUT_FOLDER, req.query.filename.replace('.csv', '.pdf')));
+
+      } catch (e) {
+        mailer.mailUser(req.query.recipient, process.env.EMAIL_SUBJECT + ' - ERROR', 'There was an error mailing the analysis of this data. Please contact the administrator ( admin@safeh2o.app ) for more information.', null);
+        mailer.mailAdmin(`Error occurred while e-mailing analysis for : ${JSON.stringify(e)}. Query: ${JSON.stringify(req.query)}`);
+      }
     } finally {
       this.cleanUpFiles(req.query.filename);
     }
@@ -57,6 +82,8 @@ export default class SwotAnalysisController {
     unlinkSync(join(process.env.PYTHON_OUTPUT_FOLDER, filename));
     unlinkSync(join(process.env.PYTHON_OUTPUT_FOLDER, filename.replace('.csv', '.html')));
     unlinkSync(join(process.env.PYTHON_OUTPUT_FOLDER, filename.replace('.csv', '.jpg')));
+    unlinkSync(join(process.env.PYTHON_OUTPUT_FOLDER, filename.replace('.csv', '-frc.jpg')));
+    unlinkSync(join(process.env.PYTHON_OUTPUT_FOLDER, filename.replace('.csv', '.pdf')));
     rimraf.sync(join(env.OCTAVE_OUTPUT_FOLDER, filename));
   }
 
