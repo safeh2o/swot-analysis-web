@@ -35,7 +35,7 @@ export class AnalysisReport {
     const octaveBackcheck = await imageDataUri.encodeFromFile(Path.resolve(report.octaveFolder, report.filename + ".csv", report.filename + "_Backcheck.png"));
     const octaveContour = await imageDataUri.encodeFromFile(Path.resolve(report.octaveFolder, report.filename + ".csv", report.filename + "_Contour.png"));
     //get the ANN table
-    const $ = cheerio.load(Fs.readFileSync(Path.resolve(report.pythonFolder, report.filename + "_Results.html")));
+    const $ = cheerio.load(Fs.readFileSync(Path.resolve(report.pythonFolder, report.filename + ".html")));
     const pythonReport = `<table class="table center" border="1">${$('.tabular_results').html()}</table>`;
     //get the Excel table from octave output
     var workbook = XLSX.readFile(Path.resolve(report.octaveFolder, report.filename + ".csv", report.filename + "_Results.xlsx"));
