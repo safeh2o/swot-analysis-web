@@ -87,7 +87,7 @@ export class AnalysisReport {
     console.log("HTML report size is", html.length);
     //for debugging, save the html file
     //Fs.writeFileSync(Path.resolve(report.folder, report.filename + "-test.html"), html)
-    const browser = await Puppeteer.launch()
+    const browser = await Puppeteer.launch({args: ['--no-sandbox'})
     const page = await browser.newPage()
     await page.setContent(html)
 
