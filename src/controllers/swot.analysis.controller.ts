@@ -56,9 +56,9 @@ export default class SwotAnalysisController {
           outputFolder: process.env.PYTHON_OUTPUT_FOLDER,
           filename: req.query.filename.replace('.csv', ''),
           reportDate: new Date(Date.now()).toLocaleDateString("en-CA"),
-          countryName: req.query.country,
-          projectName: req.query.project,
-          fieldSiteName: req.query.fieldsite,
+          countryName: this.parseBeforeDash(req.query.country),
+          projectName: this.parseBeforeDash(req.query.project),
+          fieldSiteName: this.parseBeforeDash(req.query.fieldsite),
           datasetName: req.query.dataset,
           numSamples: reportDataLines,
           numOptimize: req.query.filename.split("__")[req.query.filename.split("__").length-2],
@@ -76,6 +76,12 @@ export default class SwotAnalysisController {
     }
 
     res.json({processing: 'true'});
+  }
+
+  private parseBeforeDash(str: string) {
+    if (str.indexOf('-') != -1) {
+      return str.split('-')[0];
+    } else return str;
   }
 
   private getConfidendeLevel(level) {
