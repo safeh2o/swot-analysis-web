@@ -32,7 +32,7 @@ export default class SwotAnalysisController {
       try {
         // analyze python
         let content = await this.analyzePython(req.query.filename, req.query.country, req.query.project, req.query.fieldsite, req.query.dataset);
-	       const reportImage = join(process.env.PYTHON_OUTPUT_FOLDER, req.query.filename.replace('.csv', '.jpg'));
+	      const reportImage = join(process.env.PYTHON_OUTPUT_FOLDER, req.query.filename.replace('.csv', '.jpg'));
         // email results to recipient
         mailer.mailUser(req.query.recipient, process.env.PYTHON_EMAIL_SUBJECT, content, reportImage);
       } catch (e) {
@@ -62,7 +62,7 @@ export default class SwotAnalysisController {
           datasetName: req.query.dataset,
           numSamples: reportDataLines,
           numOptimize: req.query.filename.split("__")[req.query.filename.split("__").length-2],
-          confidenceLevel: req.query.filename.split("__")[req.query.filename.split("__").length-1],
+          confidenceLevel: this.getConfidendeLevel(req.query.filename.split("__")[req.query.filename.split("__").length-1].replace('.csv', '')),
         });
         mailer.mailUser(req.query.recipient, process.env.EMAIL_SUBJECT, process.env.EMAIL_BODY, join(process.env.PYTHON_OUTPUT_FOLDER, req.query.filename.replace('.csv', '.pdf')));
 
@@ -78,6 +78,12 @@ export default class SwotAnalysisController {
     res.json({processing: 'true'});
   }
 
+  private getConfidendeLevel(level) {
+    if (level == 'minDecay') return 'Minimum Decay Scenario';
+    if (level == 'optimumDecay') return 'Optimum/Balanced Decay Scenario';
+    if (level == 'maxDecay') return 'Maximum Decay Scenario';
+    return 'Unknown';
+  }
   public cleanUpFiles(filename) {
     this.tryDelete(join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, filename));
     this.tryDelete(join(process.env.PYTHON_OUTPUT_FOLDER, filename));

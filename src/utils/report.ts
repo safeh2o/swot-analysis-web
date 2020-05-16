@@ -82,16 +82,14 @@ export class AnalysisReport {
   }
 
   async pdf(report: ReportInfo) {
-    console.log("Report options are", report);
     const html = await this.html(report);
-    console.log("HTML report size is", html.length);
     //for debugging, save the html file
     //Fs.writeFileSync(Path.resolve(report.folder, report.filename + "-test.html"), html)
     const browser = await Puppeteer.launch({args: ['--no-sandbox']});
     const page = await browser.newPage();
     await page.setContent(html);
 
-    await page.emulateMediaType('screen');
+    await page.emulateMediaType('print');
     return page.pdf({
       path: Path.resolve(report.outputFolder, report.filename + ".pdf")
     })
