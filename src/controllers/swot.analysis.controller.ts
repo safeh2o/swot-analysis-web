@@ -48,7 +48,7 @@ export default class SwotAnalysisController {
 
       try {
         const report = new AnalysisReport();
-        const reportDataLines = readFileSync(join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, req.query.filename), "utf8").split('\n').length.toString();
+        const reportDataLines = readFileSync(join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, req.query.filename), "utf8").split('\n').length;
       
         await report.pdf({
           pythonFolder: process.env.PYTHON_OUTPUT_FOLDER,
@@ -59,8 +59,8 @@ export default class SwotAnalysisController {
           countryName: this.parseBeforeDash(req.query.country),
           projectName: this.parseBeforeDash(req.query.project),
           fieldSiteName: this.parseBeforeDash(req.query.fieldsite),
-          datasetName: req.query.dataset,
-          numSamples: reportDataLines,
+          datasetName: req.query.filename.split("__")[0],
+          numSamples: (reportDataLines - 1).toString(),
           numOptimize: req.query.filename.split("__")[req.query.filename.split("__").length-2],
           confidenceLevel: this.getConfidendeLevel(req.query.filename.split("__")[req.query.filename.split("__").length-1].replace('.csv', '')),
         });
