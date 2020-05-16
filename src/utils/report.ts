@@ -32,13 +32,13 @@ export class AnalysisReport {
   async html(report: ReportInfo) {
 
     //get base64 for octave images
-    const octaveBackcheck = await imageDataUri.encodeFromFile(Path.resolve(report.octaveFolder, report.filename + "_Backcheck.png"));
-    const octaveContour = await imageDataUri.encodeFromFile(Path.resolve(report.octaveFolder, report.filename + "_Contour.png"));
+    const octaveBackcheck = await imageDataUri.encodeFromFile(Path.resolve(report.octaveFolder, report.filename + ".csv", report.filename + "_Backcheck.png"));
+    const octaveContour = await imageDataUri.encodeFromFile(Path.resolve(report.octaveFolder, report.filename + ".csv", report.filename + "_Contour.png"));
     //get the ANN table
     const $ = cheerio.load(Fs.readFileSync(Path.resolve(report.pythonFolder, report.filename + "_Results.html")));
     const pythonReport = `<table class="table center" border="1">${$('.tabular_results').html()}</table>`;
     //get the Excel table from octave output
-    var workbook = XLSX.readFile(Path.resolve(report.octaveFolder, report.filename + "_Results.xlsx"));
+    var workbook = XLSX.readFile(Path.resolve(report.octaveFolder, report.filename + ".csv", report.filename + "_Results.xlsx"));
     const octaveExcelOutputFull = XLSX.utils.sheet_to_html(workbook.Sheets[workbook.SheetNames[0]]);
     const $octave = cheerio.load(octaveExcelOutputFull);
     const octaveExcelOutput = `<table class="table center" border="1">${$octave('table').html()}</table>`;
