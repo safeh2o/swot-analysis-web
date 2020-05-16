@@ -3,6 +3,7 @@ import config from './config/config'
 import * as cors from 'cors';
 import { config as dotenvConfig } from 'dotenv'
 import { env } from 'process';
+import * as helmet from 'helmet';
 
 dotenvConfig({path: __dirname + '/.env', debug: (env.DEBUG != null || env.DEV != null) })
 
@@ -16,6 +17,8 @@ console.log(`Server starting on ${env.HTTP_PORT} \n
 
 // tslint:disable-next-line: no-require-imports
 const app = require('./config/express').default()
+
+app.use(helmet())
 
 if (env.CORS_ALLOWED_ORIGINS) {
   const allowedOrigins = env.CORS_ALLOWED_ORIGINS.split(',');
