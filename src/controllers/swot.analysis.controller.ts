@@ -4,10 +4,10 @@ import { OctaveAnalysisRunner } from '../analysis/octave/octave.runner';
 import { BlobStorage } from '../storage/blob.service';
 import { env } from 'process';
 import { join, basename } from 'path';
-import { readFileSync, readdir, unlinkSync } from 'fs';
+import { readFileSync, readdir, unlinkSync, existsSync, mkdirSync, unlink  } from 'fs';
 import * as mailer from '../utils/mailer';
-import { existsSync, mkdirSync } from 'fs';
 import * as rimraf from 'rimraf';
+import { AnalysisReport } from '../utils/report';
 
 export default class SwotAnalysisController {
 
@@ -32,7 +32,7 @@ export default class SwotAnalysisController {
       try {
         // analyze python
         let content = await this.analyzePython(req.query.filename, req.query.country, req.query.project, req.query.fieldsite, req.query.dataset);
-	       const reportImage = join(process.env.PYTHON_OUTPUT_FOLDER, req.query.filename.replace('.csv', '.png'));
+       	const reportImage = join(process.env.PYTHON_OUTPUT_FOLDER, req.query.filename.replace('.csv', '.png'));
         // email results to recipient
         mailer.mailUser(req.query.recipient, process.env.PYTHON_EMAIL_SUBJECT, content, reportImage);
       } catch (e) {
@@ -45,6 +45,32 @@ export default class SwotAnalysisController {
         mailer.mailUser(req.query.recipient, process.env.OCTAVE_EMAIL_SUBJECT + ' - ERROR', 'There was an error running the octave analysis of this data. Please contact the administrator ( admin@safeh2o.app ) for more information.', null);
         mailer.mailAdmin(`Error occurred during Octave analysis for : ${JSON.stringify(e)}. Query: ${JSON.stringify(req.query)}`);
       }
+
+      try {
+        const report = new AnalysisReport();
+        const reportDataLines = readFileSync(join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, req.query.filename), "utf8").split('\n').length;
+      
+        await report.pdf({
+          pythonFolder: process.env.PYTHON_OUTPUT_FOLDER,
+          octaveFolder: process.env.OCTAVE_OUTPUT_FOLDER,
+          outputFolder: process.env.PYTHON_OUTPUT_FOLDER,
+          filename: req.query.filename.replace('.csv', ''),
+          reportDate: new Date(Date.now()).toLocaleDateString("en-CA"),
+          countryName: this.parseBeforeDash(req.query.country),
+          projectName: this.parseBeforeDash(req.query.project),
+          fieldSiteName: this.parseBeforeDash(req.query.fieldsite),
+          datasetName: req.query.filename.split("__")[0],
+          numSamples: (reportDataLines - 1).toString(),
+          numOptimize: req.query.filename.split("__")[req.query.filename.split("__").length-2],
+          confidenceLevel: this.getConfidendeLevel(req.query.filename.split("__")[req.query.filename.split("__").length-1].replace('.csv', '')),
+        });
+        mailer.mailUser(req.query.recipient, process.env.EMAIL_SUBJECT, process.env.EMAIL_BODY, join(process.env.PYTHON_OUTPUT_FOLDER, req.query.filename.replace('.csv', '.pdf')));
+
+      } catch (e) {
+        console.log("Error while creating and emailing consolidated report", e);
+        mailer.mailUser(req.query.recipient, process.env.EMAIL_SUBJECT + ' - ERROR', 'There was an error mailing the analysis of this data. Please contact the administrator ( admin@safeh2o.app ) for more information.', null);
+        mailer.mailAdmin(`Error occurred while e-mailing analysis for : ${JSON.stringify(e)}. Query: ${JSON.stringify(req.query)}`);
+      }
     } finally {
       this.cleanUpFiles(req.query.filename);
     }
@@ -52,12 +78,34 @@ export default class SwotAnalysisController {
     res.json({processing: 'true'});
   }
 
+  private parseBeforeDash(str: string) {
+    if (str.indexOf('-') != -1) {
+      return str.split('-')[0];
+    } else return str;
+  }
+
+  private getConfidendeLevel(level) {
+    if (level == 'minDecay') return 'Minimum Decay Scenario';
+    if (level == 'optimumDecay') return 'Optimum/Balanced Decay Scenario';
+    if (level == 'maxDecay') return 'Maximum Decay Scenario';
+    return 'Unknown';
+  }
   public cleanUpFiles(filename) {
-    unlinkSync(join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, filename));
-    unlinkSync(join(process.env.PYTHON_OUTPUT_FOLDER, filename));
-    unlinkSync(join(process.env.PYTHON_OUTPUT_FOLDER, filename.replace('.csv', '.html')));
-    unlinkSync(join(process.env.PYTHON_OUTPUT_FOLDER, filename.replace('.csv', '.png')));
+    this.tryDelete(join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, filename));
+    this.tryDelete(join(process.env.PYTHON_OUTPUT_FOLDER, filename));
+    this.tryDelete(join(process.env.PYTHON_OUTPUT_FOLDER, filename.replace('.csv', '.html')));
+    this.tryDelete(join(process.env.PYTHON_OUTPUT_FOLDER, filename.replace('.csv', '.png')));
+    this.tryDelete(join(process.env.PYTHON_OUTPUT_FOLDER, filename.replace('.csv', '-frc.png')));
+    this.tryDelete(join(process.env.PYTHON_OUTPUT_FOLDER, filename.replace('.csv', '.pdf')));
     rimraf.sync(join(env.OCTAVE_OUTPUT_FOLDER, filename));
+  }
+
+  private tryDelete(filename) {
+    try {
+      unlinkSync(filename);
+    } catch(e) {
+      console.log(`Error deleting file ${filename}`, e);
+    }
   }
 
   public async analyzePython(name: string, country, project, fieldsite, dataset): Promise<string> {
