@@ -32,7 +32,7 @@ export default class SwotAnalysisController {
       try {
         // analyze python
         let content = await this.analyzePython(req.query.filename, req.query.country, req.query.project, req.query.fieldsite, req.query.dataset);
-	       const reportImage = join(process.env.PYTHON_OUTPUT_FOLDER, req.query.filename.replace('.csv', '.jpg'));
+	       const reportImage = join(process.env.PYTHON_OUTPUT_FOLDER, req.query.filename.replace('.csv', '.png'));
         // email results to recipient
         mailer.mailUser(req.query.recipient, process.env.PYTHON_EMAIL_SUBJECT, content, reportImage);
       } catch (e) {
@@ -56,7 +56,7 @@ export default class SwotAnalysisController {
     unlinkSync(join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, filename));
     unlinkSync(join(process.env.PYTHON_OUTPUT_FOLDER, filename));
     unlinkSync(join(process.env.PYTHON_OUTPUT_FOLDER, filename.replace('.csv', '.html')));
-    unlinkSync(join(process.env.PYTHON_OUTPUT_FOLDER, filename.replace('.csv', '.jpg')));
+    unlinkSync(join(process.env.PYTHON_OUTPUT_FOLDER, filename.replace('.csv', '.png')));
     rimraf.sync(join(env.OCTAVE_OUTPUT_FOLDER, filename));
   }
 
@@ -66,7 +66,7 @@ export default class SwotAnalysisController {
       const runner = new PythonAnalysisRunner();
       const nameHTML = name.replace('.csv', '.html');
       const nameHTMLInFolder = join(process.env.PYTHON_OUTPUT_FOLDER, nameHTML);
-      const reportImage = name.replace('.csv', '.jpg');
+      const reportImage = name.replace('.csv', '.png');
       const reportImageInFolder = join(process.env.PYTHON_OUTPUT_FOLDER, reportImage);
       try {
         await runner.run(join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, name), process.env.PYTHON_OUTPUT_FOLDER, name);
