@@ -43,7 +43,7 @@ export class AnalysisReport {
     const $octave = cheerio.load(octaveExcelOutputFull);
     const octaveExcelOutput = `<table class="table center" border="1">${$octave('table').html()}</table>`;
     //get the FRC images
-    const annFRC = await imageDataUri.encodeFromFile(Path.resolve(report.pythonFolder, report.filename + "-frc.jpg"));
+    const annFRC = await imageDataUri.encodeFromFile(Path.resolve(report.pythonFolder, report.filename + ".png"));
 
     try {
       //prepare report data
