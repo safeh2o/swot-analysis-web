@@ -8,7 +8,7 @@
     "test:watch": "mocha -r ts-node/register -w ./spec/**/*.spec.ts --watch-extensions ts",
     "test": "mocha -r ts-node/register -w ./spec/**/*.spec.ts",
     "env": "\"copy src\\.env dist \"",
-    "prebuild": "copy ../.env dist",
+    "prebuild": "cpy ../.env dist",
     "build": "tsc -p src",
     "postbuild": "cd src && cpy \"**/*/*.html\" \"../dist/static\" --cwd=.",
     "start": "pm2 start dist/index.js --name SWOT-Analyzer",
