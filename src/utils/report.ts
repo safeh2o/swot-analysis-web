@@ -41,7 +41,7 @@ export class AnalysisReport {
     var workbook = XLSX.readFile(Path.resolve(report.octaveFolder, report.filename + ".csv", report.filename + "_Results.xlsx"));
     const octaveExcelOutputFull = XLSX.utils.sheet_to_html(workbook.Sheets[workbook.SheetNames[0]]);
     const $octave = cheerio.load(octaveExcelOutputFull);
-    const octaveExcelOutput = `<table class="table center" border="1">${$octave('table').html()}</table>`;
+    const octaveExcelOutput = `<table class="table center landscape-content" border="1">${$octave('table').html()}</table>`;
     //get the FRC images
     const annFRC = await imageDataUri.encodeFromFile(Path.resolve(report.pythonFolder, report.filename + "-frc.jpg"));
 
