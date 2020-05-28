@@ -62,7 +62,7 @@ export default class SwotAnalysisController {
           datasetName: req.query.filename.split("__")[0],
           numSamples: (reportDataLines - 1).toString(),
           numOptimize: req.query.filename.split("__")[req.query.filename.split("__").length-2],
-          confidenceLevel: this.getConfidendeLevel(req.query.filename.split("__")[req.query.filename.split("__").length-1].replace('.csv', '')),
+          confidenceLevel: this.getConfidenceLevel(req.query.filename.split("__")[req.query.filename.split("__").length-1].replace('.csv', '')),
         });
         mailer.mailUser(req.query.recipient, process.env.EMAIL_SUBJECT, process.env.EMAIL_BODY, join(process.env.PYTHON_OUTPUT_FOLDER, req.query.filename.replace('.csv', '.pdf')));
 
@@ -84,7 +84,7 @@ export default class SwotAnalysisController {
     } else return str;
   }
 
-  private getConfidendeLevel(level) {
+  private getConfidenceLevel(level) {
     if (level == 'minDecay') return 'Minimum Decay Scenario';
     if (level == 'optimumDecay') return 'Optimum/Balanced Decay Scenario';
     if (level == 'maxDecay') return 'Maximum Decay Scenario';
@@ -95,7 +95,7 @@ export default class SwotAnalysisController {
     this.tryDelete(join(process.env.PYTHON_OUTPUT_FOLDER, filename));
     this.tryDelete(join(process.env.PYTHON_OUTPUT_FOLDER, filename.replace('.csv', '.html')));
     this.tryDelete(join(process.env.PYTHON_OUTPUT_FOLDER, filename.replace('.csv', '.png')));
-    this.tryDelete(join(process.env.PYTHON_OUTPUT_FOLDER, filename.replace('.csv', '-frc.png')));
+    this.tryDelete(join(process.env.PYTHON_OUTPUT_FOLDER, filename.replace('.csv', '-frc.jpg')));
     this.tryDelete(join(process.env.PYTHON_OUTPUT_FOLDER, filename.replace('.csv', '.pdf')));
     rimraf.sync(join(env.OCTAVE_OUTPUT_FOLDER, filename));
   }
