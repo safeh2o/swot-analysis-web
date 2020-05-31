@@ -41,7 +41,7 @@ export class AnalysisReport {
     var workbook = XLSX.readFile(Path.resolve(report.octaveFolder, report.filename + ".csv", report.filename + "_Results.xlsx"));
     const octaveExcelOutputFull = XLSX.utils.sheet_to_html(workbook.Sheets[workbook.SheetNames[0]]);
     const $octave = cheerio.load(octaveExcelOutputFull);
-    const octaveExcelOutput = `<table class="table center landscape-content" border="1">${$octave('table').html()}</table>`;
+    const octaveExcelOutput = `<table class="table center octaveTable pagebreak" border="1">${$octave('table').html()}</table>`;
     //get the FRC images
     const annFRC = await imageDataUri.encodeFromFile(Path.resolve(report.pythonFolder, report.filename + "-frc.jpg"));
 
@@ -84,7 +84,7 @@ export class AnalysisReport {
   async pdf(report: ReportInfo) {
     const html = await this.html(report);
     //for debugging, save the html file
-    //Fs.writeFileSync(Path.resolve(report.folder, report.filename + "-test.html"), html)
+    //Fs.writeFileSync(Path.resolve(report.outputFolder, report.filename + "-test.html"), html)
     const browser = await Puppeteer.launch({args: ['--no-sandbox']});
     const page = await browser.newPage();
     await page.setContent(html);

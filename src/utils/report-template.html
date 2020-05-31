@@ -37,10 +37,10 @@
           .pagebreak { page-break-before: always; } /* page-break-after works, as well */
       }
 
-      @page landscape { size: A4 landscape; }
-
-      table.landscape-content {
-        page: landscape;
+      .octaveTable {
+        transform: rotate(270deg) scale(0.8);
+        margin-left: -700px;
+        margin-top: 620px;
       }
     </style>
   </head>
@@ -135,7 +135,7 @@
           {{{octaveExcelOutput}}}
           <br/>
           <br/>
-          <div class="center">
+          <div class="center pagebreak">
             <img src="{{octaveContour}}" />
           </div>
           <br/>
