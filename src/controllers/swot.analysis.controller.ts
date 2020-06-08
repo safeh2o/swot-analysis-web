@@ -24,6 +24,7 @@ export default class SwotAnalysisController {
       return;
     }
 
+    let octaveOutput = "";
     // download raw data to local folder
     const storage = new BlobStorage();
     await storage.download(process.env.AZURE_DOWNLOAD_CONTAINER, req.query.filename, join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, req.query.filename));
@@ -40,7 +41,7 @@ export default class SwotAnalysisController {
         mailer.mailAdmin(`Error occurred during Python analysis for : ${JSON.stringify(e)}. Query: ${JSON.stringify(req.query)}`);
       }
       try {
-        await this.analyzeOctave(req.query.filename, req.query.country, req.query.project, req.query.fieldsite, req.query.dataset, req.query.recipient);
+        octaveOutput = await this.analyzeOctave(req.query.filename, req.query.country, req.query.project, req.query.fieldsite, req.query.dataset, req.query.recipient);
       } catch (e) {
         mailer.mailUser(req.query.recipient, process.env.OCTAVE_EMAIL_SUBJECT + ' - ERROR', 'There was an error running the octave analysis of this data. Please contact the administrator ( admin@safeh2o.app ) for more information.', null);
         mailer.mailAdmin(`Error occurred during Octave analysis for : ${JSON.stringify(e)}. Query: ${JSON.stringify(req.query)}`);
@@ -63,6 +64,7 @@ export default class SwotAnalysisController {
           numSamples: (reportDataLines - 1).toString(),
           numOptimize: req.query.filename.split("__")[req.query.filename.split("__").length-2],
           confidenceLevel: this.getConfidenceLevel(req.query.filename.split("__")[req.query.filename.split("__").length-1].replace('.csv', '')),
+          octaveOutput: octaveOutput
         });
         mailer.mailUser(req.query.recipient, process.env.EMAIL_SUBJECT, process.env.EMAIL_BODY, join(process.env.PYTHON_OUTPUT_FOLDER, req.query.filename.replace('.csv', '.pdf')));
 
@@ -135,14 +137,14 @@ export default class SwotAnalysisController {
     return new Promise<any>(async (resolve, reject) => {
       const storage = new BlobStorage();
       const runner = new OctaveAnalysisRunner();
-
+      let octaveOutput = "";
       const outputFolder = join(env.OCTAVE_OUTPUT_FOLDER, name);
       if (!existsSync(outputFolder)) {
         mkdirSync(outputFolder);
       }
 
       try {
-        await runner.run(join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, name), outputFolder, name);
+        octaveOutput = await runner.run(join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, name), outputFolder, name);
 
         readdir(outputFolder, function (err, files) {
           if (err) {
@@ -157,7 +159,7 @@ export default class SwotAnalysisController {
       } catch (e) {
         reject(e);
       }
-      resolve(outputFolder);
+      resolve(octaveOutput);
     });
   }
 }

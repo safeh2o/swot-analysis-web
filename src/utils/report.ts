@@ -25,6 +25,7 @@ export type ReportInfo = {
   numSamples: string,
   numOptimize: string,
   confidenceLevel: string,
+  octaveOutput: string
 }
 
 export class AnalysisReport {
@@ -45,6 +46,16 @@ export class AnalysisReport {
     //get the FRC images
     const annFRC = await imageDataUri.encodeFromFile(Path.resolve(report.pythonFolder, report.filename + "-frc.jpg"));
 
+    let octaveFRCDist = "0.0";
+    let octaveNumHours = "0";
+    if (report.octaveOutput != null && report.octaveOutput.indexOf(",") > -1) {
+      try {
+        octaveFRCDist = report.octaveOutput.split(",")[0];
+        octaveNumHours = report.octaveOutput.split(",")[1];
+      } catch(e) {
+        console.log(`Error while parsing octave output: ${report.octaveOutput}`);
+      }
+    }
     try {
       //prepare report data
       const data = {
@@ -60,7 +71,9 @@ export class AnalysisReport {
         octaveExcelOutput: octaveExcelOutput,
         octaveContour: octaveContour,
         pythonHtmlReport: pythonReport,
-        pythonFRCImage: annFRC
+        pythonFRCImage: annFRC,
+        octaveFRCDist: octaveFRCDist,
+        octaveNumHours : octaveNumHours
       }
 
       //inject template into report
