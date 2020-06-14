@@ -47,11 +47,14 @@ export class AnalysisReport {
     const annFRC = await imageDataUri.encodeFromFile(Path.resolve(report.pythonFolder, report.filename + "-frc.jpg"));
 
     let octaveFRCDist = "0.0";
-    if (report.octaveOutput != null && report.octaveOutput.length > 0) {
+    // extract FRC=[frcValue]; from octave, e.g. FRC=0.1;
+    if (report.octaveOutput != null && report.octaveOutput.length > 0 && report.octaveOutput.indexOf("FRC=") != -1) {
       try {
-        octaveFRCDist = report.octaveOutput;
+        octaveFRCDist = report.octaveOutput.substring(report.octaveOutput.indexOf("FRC=") + 4);
+        octaveFRCDist = octaveFRCDist.split(";")[0];
       } catch(e) {
-        console.log(`Error while parsing octave output: ${report.octaveOutput}`);
+        console.log(`Error while parsing FRC= value from octave output: ${report.octaveOutput}`);
+        console.log(`Ensure octave command in .env file looks like this: octave-cli --eval "[~,frc]=engmodel('<INPUTFILE>', '<OUTPUTFILE>'); printf('FRC=%.1f;', frc);"`);
       }
     }
     try {
