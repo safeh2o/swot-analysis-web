@@ -34,16 +34,16 @@ export default class SwotAnalysisController {
         // analyze python
         let content = await this.analyzePython(req.query.filename, req.query.country, req.query.project, req.query.fieldsite, req.query.dataset);
        	const reportImage = join(process.env.PYTHON_OUTPUT_FOLDER, req.query.filename.replace('.csv', '.png'));
-        // email results to recipient
-        mailer.mailUser(req.query.recipient, process.env.PYTHON_EMAIL_SUBJECT, content, reportImage);
+        // email results to recipient - disabled in favor of consolidated report
+        // mailer.mailUser(req.query.recipient, process.env.PYTHON_EMAIL_SUBJECT, content, reportImage);
       } catch (e) {
-        mailer.mailUser(req.query.recipient, process.env.PYTHON_EMAIL_SUBJECT + ' - ERROR', 'There was an error running the python analysis of this data. Please contact the administrator ( admin@safeh2o.app ) for more information.', null);
+        // mailer.mailUser(req.query.recipient, process.env.PYTHON_EMAIL_SUBJECT + ' - ERROR', 'There was an error running the python analysis of this data. Please contact the administrator ( admin@safeh2o.app ) for more information.', null);
         mailer.mailAdmin(`Error occurred during Python analysis for : ${JSON.stringify(e)}. Query: ${JSON.stringify(req.query)}`);
       }
       try {
         octaveOutput = await this.analyzeOctave(req.query.filename, req.query.country, req.query.project, req.query.fieldsite, req.query.dataset, req.query.recipient);
       } catch (e) {
-        mailer.mailUser(req.query.recipient, process.env.OCTAVE_EMAIL_SUBJECT + ' - ERROR', 'There was an error running the octave analysis of this data. Please contact the administrator ( admin@safeh2o.app ) for more information.', null);
+        // mailer.mailUser(req.query.recipient, process.env.OCTAVE_EMAIL_SUBJECT + ' - ERROR', 'There was an error running the octave analysis of this data. Please contact the administrator ( admin@safeh2o.app ) for more information.', null);
         mailer.mailAdmin(`Error occurred during Octave analysis for : ${JSON.stringify(e)}. Query: ${JSON.stringify(req.query)}`);
       }
 
@@ -154,8 +154,8 @@ export default class SwotAnalysisController {
             await storage.save(country, `${project}/${fieldsite}/${dataset}/analysis/octave/${basename(file)}`, join(outputFolder, file));
           });
         });
-
-        await mailer.mailAllFilesInFolder(outputFolder, recipient, process.env.FROM_ADDRESS, process.env.OCTAVE_EMAIL_SUBJECT, 'Please find analysis results attached.');
+        // disabled in favor of consolidated report
+        //await mailer.mailAllFilesInFolder(outputFolder, recipient, process.env.FROM_ADDRESS, process.env.OCTAVE_EMAIL_SUBJECT, 'Please find analysis results attached.');
       } catch (e) {
         reject(e);
       }
