@@ -3,7 +3,7 @@
 REPODIR="/home/swotAdmin/source/analyzer"
 cd ${REPODIR} && git remote update > /dev/null 2>&1
 UPSTREAM_ORIGIN="origin"
-UPSTREAM_BRANCH="master"
+UPSTREAM_BRANCH="prod"
 UPSTREAM="${UPSTREAM_ORIGIN}/${UPSTREAM_BRANCH}"
 LOCAL=$(cd ${REPODIR} && git rev-parse @)
 REMOTE=$(cd ${REPODIR} && git rev-parse ${UPSTREAM})
