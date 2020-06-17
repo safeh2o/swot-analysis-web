@@ -38,6 +38,8 @@ export class AnalysisReport {
     //get the ANN table
     const $ = cheerio.load(Fs.readFileSync(Path.resolve(report.pythonFolder, report.filename + ".html")));
     const pythonReport = `<table class="table center" border="1">${$('.tabular_results').html()}</table>`;
+    //get ANN version
+    const annVersion = `${$('.swot_version').html()}`;
     //get the Excel table from octave output
     var workbook = XLSX.readFile(Path.resolve(report.octaveFolder, report.filename + ".csv", report.filename + "_Results.xlsx"));
     const octaveExcelOutputFull = XLSX.utils.sheet_to_html(workbook.Sheets[workbook.SheetNames[0]]);
@@ -72,6 +74,7 @@ export class AnalysisReport {
         octaveExcelOutput: octaveExcelOutput,
         octaveContour: octaveContour,
         pythonHtmlReport: pythonReport,
+        annVersion: annVersion,
         pythonFRCImage: annFRC,
         octaveFRCDist: octaveFRCDist
       }
