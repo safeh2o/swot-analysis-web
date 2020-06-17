@@ -23,6 +23,7 @@ export default class SwotAnalysisController {
       res.status(400).send('Missing one of the parameters: filename, recipient, country, project, fieldsite, dataset');
       return;
     }
+    res.json({processing: 'true'});
 
     let octaveOutput = "";
     // download raw data to local folder
@@ -76,8 +77,6 @@ export default class SwotAnalysisController {
     } finally {
       this.cleanUpFiles(req.query.filename);
     }
-
-    res.json({processing: 'true'});
   }
 
   private parseBeforeDash(str: string) {
