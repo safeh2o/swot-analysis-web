@@ -52,11 +52,12 @@ export default class SwotAnalysisController {
         const report = new AnalysisReport();
         const reportDataLines = readFileSync(join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, req.query.filename), "utf8").split('\n').length;
       
+        const pdfFilename = req.query.filename.replace('.csv', '.pdf');
         await report.pdf({
           pythonFolder: process.env.PYTHON_OUTPUT_FOLDER,
           octaveFolder: process.env.OCTAVE_OUTPUT_FOLDER,
           outputFolder: process.env.PYTHON_OUTPUT_FOLDER,
-          filename: req.query.filename.replace('.csv', ''),
+          filename: pdfFilename,
           reportDate: new Date(Date.now()).toLocaleDateString("en-CA"),
           countryName: this.parseBeforeDash(req.query.country),
           projectName: this.parseBeforeDash(req.query.project),
@@ -67,7 +68,8 @@ export default class SwotAnalysisController {
           confidenceLevel: this.getConfidenceLevel(req.query.filename.split("__")[req.query.filename.split("__").length-1].replace('.csv', '')),
           octaveOutput: octaveOutput
         });
-        mailer.mailUser(req.query.recipient, process.env.EMAIL_SUBJECT, process.env.EMAIL_BODY, join(process.env.PYTHON_OUTPUT_FOLDER, req.query.filename.replace('.csv', '.pdf')));
+        await storage.save(country, `${project}/${fieldsite}/${dataset}/analysis/${pdfFilename}`, join(process.env.PYTHON_OUTPUT_FOLDER, pdfFilename));
+        mailer.mailUser(req.query.recipient, process.env.EMAIL_SUBJECT, process.env.EMAIL_BODY, join(process.env.PYTHON_OUTPUT_FOLDER, pdfFilename));
 
       } catch (e) {
         console.log("Error while creating and emailing consolidated report", e);
