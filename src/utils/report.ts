@@ -107,7 +107,7 @@ export class AnalysisReport {
 
     await page.emulateMediaType('print');
     return page.pdf({
-      path: Path.resolve(report.outputFolder, report.filename + report.filename.endsWith(".pdf") ? '' : '.pdf')
+      path: Path.resolve(report.outputFolder, report.filename + (report.filename.endsWith(".pdf") ? '' : '.pdf'))
     })
   }
 }
