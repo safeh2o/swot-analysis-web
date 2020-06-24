@@ -40,6 +40,8 @@ export class AnalysisReport {
     const pythonReport = `<table class="table center" border="1">${$('.tabular_results').html()}</table>`;
     //get ANN version
     const annVersion = `${$('.swot_version').html()}`;
+    //get average time between tapstand and household
+    const deltaT = `${$('.time_difference').html()}`;
     //get the Excel table from octave output
     var workbook = XLSX.readFile(Path.resolve(report.octaveFolder, report.filename + ".csv", report.filename + "_Results.xlsx"));
     const octaveExcelOutputFull = XLSX.utils.sheet_to_html(workbook.Sheets[workbook.SheetNames[0]]);
@@ -75,6 +77,7 @@ export class AnalysisReport {
         octaveContour: octaveContour,
         pythonHtmlReport: pythonReport,
         annVersion: annVersion,
+        deltaT: deltaT,
         pythonFRCImage: annFRC,
         octaveFRCDist: octaveFRCDist
       }
