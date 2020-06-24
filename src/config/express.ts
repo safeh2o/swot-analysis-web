@@ -20,8 +20,7 @@ export default function() {
 
   app.use(
     (req: express.Request, res: express.Response, next: Function): void => {
-      const err: Error = new Error('Not Found')
-      next(err)
+      next()
     },
   )
 
