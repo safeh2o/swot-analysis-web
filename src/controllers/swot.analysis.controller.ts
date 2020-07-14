@@ -8,6 +8,7 @@ import { readFileSync, readdir, unlinkSync, existsSync, mkdirSync, unlink  } fro
 import * as mailer from '../utils/mailer';
 import * as rimraf from 'rimraf';
 import { AnalysisReport } from '../utils/report';
+import { MongoClient, ObjectId } from 'mongodb';
 
 export default class SwotAnalysisController {
 
@@ -48,9 +49,13 @@ export default class SwotAnalysisController {
         mailer.mailAdmin(`Error occurred during Octave analysis for : ${JSON.stringify(e)}. Query: ${JSON.stringify(req.query)}`);
       }
 
+      // for debugging only, uncomment the next line to simulate octave output
+      // octaveOutput = 'FRC=1.2';
+
       try {
         const report = new AnalysisReport();
         const reportDataLines = readFileSync(join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, req.query.filename), "utf8").split('\n').length;
+        const webSkipped = await this.getSkippedRows(req.query.dataset);
       
         await report.pdf({
           pythonFolder: process.env.PYTHON_OUTPUT_FOLDER,
@@ -65,7 +70,8 @@ export default class SwotAnalysisController {
           numSamples: (reportDataLines - 1).toString(),
           numOptimize: req.query.filename.split("__")[req.query.filename.split("__").length-2],
           confidenceLevel: this.getConfidenceLevel(req.query.filename.split("__")[req.query.filename.split("__").length-1].replace('.csv', '')),
-          octaveOutput: octaveOutput
+          octaveOutput: octaveOutput,
+          webSkipped: webSkipped
         });
         const pdfFilename = req.query.filename.replace('.csv', '.pdf');
         await storage.save(req.query.country, `${req.query.project}/${req.query.fieldsite}/${req.query.dataset}/analysis/${pdfFilename}`, join(process.env.PYTHON_OUTPUT_FOLDER, pdfFilename));
@@ -79,6 +85,21 @@ export default class SwotAnalysisController {
     } finally {
       this.cleanUpFiles(req.query.filename);
     }
+  }
+
+  public async getSkippedRows(datasetId: string) {
+    const url = process.env.MONGO_DB_CONNECTION_STRING;
+    const client = await MongoClient.connect(url, {useUnifiedTopology: true});
+    
+    const db = await client.db();
+    const collection = await db.collection('datasets')
+    const query = {'_id': ObjectId(datasetId)}
+
+    const dataset = await collection.findOne(query);
+
+    client.close();
+
+    return dataset.skippedRows;
   }
 
   private parseBeforeDash(str: string) {

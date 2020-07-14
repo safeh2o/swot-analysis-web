@@ -6,6 +6,7 @@ import * as Fs from 'fs';
 import * as cheerio from 'cheerio';
 import * as XLSX from 'xlsx';
 import * as Puppeteer from 'puppeteer';
+import * as csv from 'csv-parser';
 const ReadFile = Util.promisify(Fs.readFile)
 
 export type ReportInfo = {
@@ -25,7 +26,8 @@ export type ReportInfo = {
   numSamples: string,
   numOptimize: string,
   confidenceLevel: string,
-  octaveOutput: string
+  octaveOutput: string,
+  webSkipped: string[]
 }
 
 export class AnalysisReport {
@@ -37,7 +39,7 @@ export class AnalysisReport {
     const octaveContour = await imageDataUri.encodeFromFile(Path.resolve(report.octaveFolder, report.filename + ".csv", report.filename + "_Contour.png"));
     //get the ANN table
     const $ = cheerio.load(Fs.readFileSync(Path.resolve(report.pythonFolder, report.filename + ".html")));
-    const pythonReport = `<table class="table center" border="1">${$('.tabular_results').html()}</table>`;
+    const pythonReport = `<table class="table center" border="1">${$('#annTable').html()}</table>`;
     //get ANN version
     const annVersion = `${$('.swot_version').html()}`;
     //get average time between tapstand and household
@@ -47,8 +49,29 @@ export class AnalysisReport {
     const octaveExcelOutputFull = XLSX.utils.sheet_to_html(workbook.Sheets[workbook.SheetNames[0]]);
     const $octave = cheerio.load(octaveExcelOutputFull);
     const octaveExcelOutput = `<table class="table center octaveTable pagebreak" border="1">${$octave('table').html()}</table>`;
+    //get skipped rows from octave output
+    const skippedRowsFilename = Path.resolve(report.octaveFolder, report.filename + '.csv', report.filename + '_SkippedRows.csv');
+    const octaveSkippedRows = [];
+    if (Fs.existsSync(skippedRowsFilename)) {
+      try {
+        Fs.createReadStream(skippedRowsFilename)
+        .pipe(csv())
+        .on('data', (row) => {
+          octaveSkippedRows.push(row);
+        });
+      } catch (e) {
+        console.log(`Error while parsing skipped data rows for EO: ${e}`);
+      }
+    }
     //get the FRC images
     const annFRC = await imageDataUri.encodeFromFile(Path.resolve(report.pythonFolder, report.filename + "-frc.jpg"));
+    const pythonSkipped = $('#pythonSkipped');
+    let pythonSkippedHtml = null;
+    if (pythonSkipped.html()){
+      let tr = pythonSkipped.find('thead tr');
+      tr.attr('style', null);
+      pythonSkippedHtml = `<table class="table center" border="1">${pythonSkipped.html()}</table>`;
+    }
 
     let octaveFRCDist = "0.0";
     // extract FRC=[frcValue]; from octave, e.g. FRC=0.1;
@@ -79,7 +102,10 @@ export class AnalysisReport {
         annVersion: annVersion,
         deltaT: deltaT,
         pythonFRCImage: annFRC,
-        octaveFRCDist: octaveFRCDist
+        octaveFRCDist: octaveFRCDist,
+        webSkipped: report.webSkipped,
+        pythonSkippedHtml: pythonSkippedHtml,
+        octaveSkipped: octaveSkippedRows
       }
 
       //inject template into report
