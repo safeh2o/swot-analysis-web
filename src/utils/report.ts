@@ -51,6 +51,8 @@ export class AnalysisReport {
     const octaveExcelOutput = `<table class="table center octaveTable pagebreak" border="1">${$octave('table').html()}</table>`;
     //get skipped rows from octave output
     const skippedRowsFilename = Path.resolve(report.octaveFolder, report.filename + '.csv', report.filename + '_SkippedRows.csv');
+    // get standardization ruleset from octave output
+    const octaveRulesetFilename = Path.resolve(report.octaveFolder, report.filename + '.csv', report.filename + '_Ruleset.csv');
     const octaveSkippedRows = [];
     if (Fs.existsSync(skippedRowsFilename)) {
       try {
@@ -63,8 +65,23 @@ export class AnalysisReport {
         console.log(`Error while parsing skipped data rows for EO: ${e}`);
       }
     }
+    const octaveRuleset = [];
+    if (Fs.existsSync(octaveRulesetFilename)) {
+      try {
+        Fs.createReadStream(octaveRulesetFilename)
+        .pipe(csv())
+        .on('data', (row) => {
+          if (row['Count'] > 0){
+            octaveRuleset.push(row);
+          }
+        });
+      } catch (e) {
+        console.log(`Error while parsing standardized ruleset for EO: ${e}`);
+      }
+    }
     //get the FRC images
     const annFRC = await imageDataUri.encodeFromFile(Path.resolve(report.pythonFolder, report.filename + "-frc.jpg"));
+
     const pythonSkipped = $('#pythonSkipped');
     let pythonSkippedHtml = null;
     if (pythonSkipped.html()){
@@ -72,6 +89,7 @@ export class AnalysisReport {
       tr.attr('style', null);
       pythonSkippedHtml = `<table class="table center" border="1">${pythonSkipped.html()}</table>`;
     }
+    const pythonRuleset = $('#ann_ruleset').html();
 
     let octaveFRCDist = "0.0";
     // extract FRC=[frcValue]; from octave, e.g. FRC=0.1;
@@ -105,7 +123,9 @@ export class AnalysisReport {
         octaveFRCDist: octaveFRCDist,
         webSkipped: report.webSkipped,
         pythonSkippedHtml: pythonSkippedHtml,
-        octaveSkipped: octaveSkippedRows
+        pythonRuleset: pythonRuleset,
+        octaveSkipped: octaveSkippedRows,
+        octaveRuleset: octaveRuleset
       }
 
       //inject template into report
@@ -129,7 +149,7 @@ export class AnalysisReport {
   async pdf(report: ReportInfo) {
     const html = await this.html(report);
     //for debugging, save the html file
-    //Fs.writeFileSync(Path.resolve(report.outputFolder, report.filename + "-test.html"), html)
+    // Fs.writeFileSync(Path.resolve(report.outputFolder, report.filename + "-test.html"), html)
     const browser = await Puppeteer.launch({args: ['--no-sandbox']});
     const page = await browser.newPage();
     await page.setContent(html);
