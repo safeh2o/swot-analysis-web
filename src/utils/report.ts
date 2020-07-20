@@ -90,6 +90,7 @@ export class AnalysisReport {
       pythonSkippedHtml = `<table class="table center" border="1">${pythonSkipped.html()}</table>`;
     }
     const pythonRuleset = $('#ann_ruleset').html();
+    const pythonSkippedCount = $('#pythonSkipped_count').html();
 
     let octaveFRCDist = "0.0";
     // extract FRC=[frcValue]; from octave, e.g. FRC=0.1;
@@ -123,22 +124,33 @@ export class AnalysisReport {
         octaveFRCDist: octaveFRCDist,
         webSkipped: report.webSkipped,
         pythonSkippedHtml: pythonSkippedHtml,
+        pythonSkippedCount: pythonSkippedCount,
         pythonRuleset: pythonRuleset,
         octaveSkipped: octaveSkippedRows,
         octaveRuleset: octaveRuleset
       }
 
       //inject template into report
-      let templatePath, content;
-      try {
-        //app is running inside dist folder
-        templatePath = Path.resolve('./static/report-template.html')
-        content = await ReadFile(templatePath, 'utf8')
-      } catch (e) {
-        //app might be running outside dist folder
-        templatePath = Path.resolve('./dist/static/report-template.html')
-        content = await ReadFile(templatePath, 'utf8')
+      let templateDir: string, templatePath: string, content, flowchartContent;
+      
+      if (Fs.existsSync('./static')){
+        templateDir = './static'
       }
+      else{
+        templateDir = './dist/static';
+      }
+
+      // get main report template content
+      templatePath = Path.resolve(templateDir, 'report-template.html');
+      content = await ReadFile(templatePath, 'utf8');
+
+      // get flow chart template content
+      templatePath = Path.resolve(templateDir, 'flowchart-template.html');
+      flowchartContent = await ReadFile(templatePath, 'utf8');
+
+      const flowchart = Handlebars.compile(flowchartContent);
+      Handlebars.registerPartial('standardizationFlowchart', flowchart);
+
       const template = Handlebars.compile(content)
       return template(data)
     } catch (error) {
