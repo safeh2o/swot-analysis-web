@@ -42,6 +42,12 @@
         margin-left: -900px;
         margin-top: 620px;
       }
+
+      .fit-content {
+        width: 1px;
+        white-space: nowrap;
+      }
+
     </style>
   </head>
   <body>
@@ -154,6 +160,13 @@
           <h1 class="center pagebreak"><strong>Appendix 3: Data Audit Log</strong></h1>
           <h3>Web App Standardization:</h3>
           {{#if webSkipped}}
+            <h4>Rules applied ({{webSkipped.length}} matches):</h4>
+            <ul>
+              <li>Invalid tapstand date/time</li>
+              <li>Invalid tapstand FRC</li>
+              <li>Invalid household date/time</li>
+              <li>Invalid household FRC</li>
+            </ul>
             <table class="table center" border="1">
               <thead>
                 <tr>
@@ -183,6 +196,10 @@
           {{/if}}
 
           <h3>ANN Standardization:</h3>
+          {{#if pythonRuleset}}
+          <h4>Rules applied:</h4>
+          {{{pythonRuleset}}}
+          {{/if}}
           {{#if pythonSkippedHtml}}
           {{{pythonSkippedHtml}}}
           {{else}}
@@ -190,6 +207,16 @@
           {{/if}}
 
           <h3>EO Standardization:</h3>
+
+          {{#if octaveRuleset}}
+          <h4>Rules applied:</h4>
+          <ul>
+            {{#each octaveRuleset}}
+            <li>{{Description}}. Matches: {{Count}}</li>
+            {{/each}}
+          </ul>
+          {{/if}}
+
           {{#if octaveSkipped}}
           <table class="table center" border="1">
             <thead>
