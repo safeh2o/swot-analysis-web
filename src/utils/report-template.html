@@ -48,6 +48,11 @@
         white-space: nowrap;
       }
 
+      .red-cell {
+        border-color: red;
+        border-width: 2px;
+      }
+
     </style>
   </head>
   <body>
@@ -168,30 +173,7 @@
               <li>Invalid household date/time</li>
               <li>Invalid household FRC</li>
             </ul>
-            <table class="table center" border="1">
-              <thead>
-                <tr>
-                  <th>ts_datetime</th>
-                  <th>ts_frc</th>
-                  <th>hh_datetime</th>
-                  <th>hh_frc</th>
-                  <th>ts_wattemp</th>
-                  <th>ts_cond</th>
-                </tr>
-              </thead>
-              <tbody class="skipped-rows">
-                {{#each webSkipped}}
-                <tr>
-                  <td>{{ts_datetime}}</td>
-                  <td>{{ts_frc}}</td>
-                  <td>{{hh_datetime}}</td>
-                  <td>{{hh_frc}}</td>
-                  <td>{{ts_wattemp}}</td>
-                  <td>{{ts_cond}}</td>
-                </tr>
-                {{/each}}
-              </tbody>
-            </table>
+            {{> standardizationTable skippedRows=webSkipped dataHeaders=dataHeaders}}
           {{else}}
           <h4>No data was skipped from the raw input data</h4>
           {{/if}}
@@ -219,30 +201,7 @@
           {{/if}}
 
           {{#if octaveSkipped}}
-          <table class="table center" border="1">
-            <thead>
-              <tr>
-                <th>ts_datetime</th>
-                <th>ts_frc</th>
-                <th>hh_datetime</th>
-                <th>hh_frc</th>
-                <th>ts_wattemp</th>
-                <th>ts_cond</th>
-              </tr>
-            </thead>
-            <tbody class="skipped-rows">
-              {{#each octaveSkipped}}
-              <tr>
-                <td>{{ts_datetime}}</td>
-                <td>{{ts_frc}}</td>
-                <td>{{hh_datetime}}</td>
-                <td>{{hh_frc}}</td>
-                <td>{{ts_wattemp}}</td>
-                <td>{{ts_cond}}</td>
-              </tr>
-              {{/each}}
-            </tbody>
-          </table>
+          {{> standardizationTable skippedRows=octaveSkipped dataHeaders=dataHeaders}
           {{else}}
           <h4>No data was skipped from the EO model</h4>
           {{/if}}
