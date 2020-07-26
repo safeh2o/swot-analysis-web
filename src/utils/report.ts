@@ -103,6 +103,9 @@ export class AnalysisReport {
         console.log(`Ensure octave command in .env file looks like this: octave-cli --eval "[~,frc]=engmodel('<INPUTFILE>', '<OUTPUTFILE>'); printf('FRC=%.1f;', frc);"`);
       }
     }
+
+    const dataHeaders = ['ts_datetime', 'ts_frc', 'hh_datetime', 'hh_frc', 'ts_wattemp', 'ts_cond'];
+
     try {
       //prepare report data
       const data = {
@@ -127,34 +130,31 @@ export class AnalysisReport {
         pythonSkippedCount: pythonSkippedCount,
         pythonRuleset: pythonRuleset,
         octaveSkipped: octaveSkippedRows,
-        octaveRuleset: octaveRuleset
+        octaveRuleset: octaveRuleset,
+        dataHeaders: dataHeaders
       }
 
-      //inject template into report
-      let templateDir: string, templatePath: string, content, flowchartContent;
-      
-      if (Fs.existsSync('./static')){
-        templateDir = './static'
-      }
-      else{
-        templateDir = './dist/static';
-      }
+      const templateDir = Fs.existsSync('./static') ? './static' : './dist/static';
 
-      // get main report template content
-      templatePath = Path.resolve(templateDir, 'report-template.html');
-      content = await ReadFile(templatePath, 'utf8');
+      Handlebars.registerHelper('ifin', (list, item, options) => {
+        if (list.split(',').includes(item)) {
+          return options.fn(this);
+        }
+        else {
+          return options.inverse(this);
+        }
+      });
 
-      // get flow chart template content
-      templatePath = Path.resolve(templateDir, 'flowchart-template.html');
-      flowchartContent = await ReadFile(templatePath, 'utf8');
-
-      const flowchart = Handlebars.compile(flowchartContent);
+      const flowchart = await this.compileFile(templateDir, 'flowchart-template.html');
       Handlebars.registerPartial('standardizationFlowchart', flowchart);
 
-      const template = Handlebars.compile(content)
+      const standardizationtable = await this.compileFile(templateDir, 'standardization_table-template.html');
+      Handlebars.registerPartial('standardizationTable', standardizationtable);
+
+      const template = await this.compileFile(templateDir, 'report-template.html');
       return template(data)
     } catch (error) {
-      throw new Error('Cannot create HTML report template.' + error)
+      throw new Error('Cannot create HTML report template.' + error);
     }
   }
 
@@ -170,6 +170,12 @@ export class AnalysisReport {
     return page.pdf({
       path: Path.resolve(report.outputFolder, report.filename + (report.filename.endsWith(".pdf") ? '' : '.pdf'))
     })
+  }
+
+  async compileFile(templateDir: string, filename: string) {
+    const templatePath = Path.resolve(templateDir, filename);
+    const content = await ReadFile(templatePath, 'utf8');
+    return Handlebars.compile(content);
   }
 }
 
