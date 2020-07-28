@@ -48,9 +48,15 @@
         white-space: nowrap;
       }
 
+      table.fill-whitespace td {
+        height: 0px;
+      }
+
       .red-cell {
         border-color: red;
         border-width: 2px;
+        border-style: solid;
+        height: 100%;
       }
 
     </style>
@@ -163,21 +169,24 @@
           <br/>
           {{{pythonHtmlReport}}}
           <h1 class="center pagebreak"><strong>Appendix 3: Data Audit Log</strong></h1>
-          <div class="center">{{> standardizationFlowchart webSkippedCount=webSkipped.length octaveSkippedCount=octaveSkipped.length}}</div>
+          <div class="center">{{> standardizationFlowchart flowchart_counts}}</div>
+          
+          <br>
           <h3>Web App Standardization:</h3>
           {{#if webSkipped}}
             <h4>Rules applied ({{webSkipped.length}} matches):</h4>
             <ul>
-              <li>Invalid tapstand date/time</li>
-              <li>Invalid tapstand FRC</li>
-              <li>Invalid household date/time</li>
-              <li>Invalid household FRC</li>
+              <li>Invalid tapstand date/time. Matches: {{webRuleset.ts_datetime}}</li>
+              <li>Invalid tapstand FRC. Matches: {{webRuleset.ts_frc}}</li>
+              <li>Invalid household date/time. Matches {{webRuleset.hh_datetime}}</li>
+              <li>Invalid household FRC. Matches: {{webRuleset.hh_frc}}</li>
             </ul>
-            {{> standardizationTable skippedRows=webSkipped dataHeaders=dataHeaders}}
+            {{> standardizationTable skippedRows=webSkipped}}
           {{else}}
           <h4>No data was skipped from the raw input data</h4>
           {{/if}}
 
+          <br>
           <h3>ANN Standardization:</h3>
           {{#if pythonRuleset}}
           <h4>Rules applied ({{pythonSkippedCount}} matches):</h4>
@@ -189,6 +198,7 @@
           <h4>No data was skipped from the ANN model</h4>
           {{/if}}
 
+          <br>
           <h3>EO Standardization:</h3>
 
           {{#if octaveRuleset}}
@@ -201,7 +211,7 @@
           {{/if}}
 
           {{#if octaveSkipped}}
-          {{> standardizationTable skippedRows=octaveSkipped dataHeaders=dataHeaders}
+          {{> standardizationTable skippedRows=octaveSkipped}}
           {{else}}
           <h4>No data was skipped from the EO model</h4>
           {{/if}}
