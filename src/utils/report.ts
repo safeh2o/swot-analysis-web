@@ -27,7 +27,7 @@ export type ReportInfo = {
   numOptimize: string,
   confidenceLevel: string,
   octaveOutput: string,
-  webSkipped: string[]
+  webSkipped: Object[]
 }
 
 export class AnalysisReport {
@@ -71,9 +71,7 @@ export class AnalysisReport {
         Fs.createReadStream(octaveRulesetFilename)
         .pipe(csv())
         .on('data', (row) => {
-          if (row['Count'] > 0){
-            octaveRuleset.push(row);
-          }
+          octaveRuleset.push(row);
         });
       } catch (e) {
         console.log(`Error while parsing standardized ruleset for EO: ${e}`);
@@ -82,13 +80,7 @@ export class AnalysisReport {
     //get the FRC images
     const annFRC = await imageDataUri.encodeFromFile(Path.resolve(report.pythonFolder, report.filename + "-frc.jpg"));
 
-    const pythonSkipped = $('#pythonSkipped');
-    let pythonSkippedHtml = null;
-    if (pythonSkipped.html()){
-      let tr = pythonSkipped.find('thead tr');
-      tr.attr('style', null);
-      pythonSkippedHtml = `<table class="table center" border="1">${pythonSkipped.html()}</table>`;
-    }
+    const pythonSkippedHtml = cheerio.html($('#pythonSkipped'));
     const pythonRuleset = $('#ann_ruleset').html();
     const pythonSkippedCount = $('#pythonSkipped_count').html();
 
@@ -105,6 +97,27 @@ export class AnalysisReport {
     }
 
     const dataHeaders = ['ts_datetime', 'ts_frc', 'hh_datetime', 'hh_frc', 'ts_wattemp', 'ts_cond'];
+
+    const webRuleset = {};
+    dataHeaders.forEach(col => {
+      webRuleset[col] = 0;
+    });
+
+    report.webSkipped.forEach(row => {
+      const col = row['reason'];
+      if (col)
+        webRuleset[col] += 1;
+    });
+
+    const flowchart_counts = {
+      'n_input': parseInt(report.numSamples) + report.webSkipped.length,
+      'x_web': report.webSkipped.length,
+      'n_web': report.numSamples,
+      'x_eo': octaveSkippedRows.length,
+      'n_eo': parseInt(report.numSamples) - octaveSkippedRows.length,
+      'x_ann': parseInt(pythonSkippedCount),
+      'n_ann': parseInt(report.numSamples) - parseInt(pythonSkippedCount)
+    };
 
     try {
       //prepare report data
@@ -131,13 +144,15 @@ export class AnalysisReport {
         pythonRuleset: pythonRuleset,
         octaveSkipped: octaveSkippedRows,
         octaveRuleset: octaveRuleset,
-        dataHeaders: dataHeaders
+        dataHeaders: dataHeaders,
+        flowchart_counts: flowchart_counts,
+        webRuleset: webRuleset
       }
 
       const templateDir = Fs.existsSync('./static') ? './static' : './dist/static';
 
       Handlebars.registerHelper('ifin', (list, item, options) => {
-        if (list.split(',').includes(item)) {
+        if (list && list.split(',').includes(item)) {
           return options.fn(this);
         }
         else {
