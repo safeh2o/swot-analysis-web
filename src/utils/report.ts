@@ -31,6 +31,11 @@ export type ReportInfo = {
 }
 
 export class AnalysisReport {
+  debug: boolean;
+  
+  constructor(debug = false) {
+    this.debug = debug;
+  }
 
   async html(report: ReportInfo) {
 
@@ -81,7 +86,7 @@ export class AnalysisReport {
     const annFRC = await imageDataUri.encodeFromFile(Path.resolve(report.pythonFolder, report.filename + "-frc.jpg"));
 
     const pythonSkippedHtml = cheerio.html($('#pythonSkipped'));
-    const pythonRuleset = $('#ann_ruleset').html();
+    const pythonRuleset = cheerio.html($('#ann_ruleset'));
     const pythonSkippedCount = $('#pythonSkipped_count').html();
 
     let octaveFRCDist = "0.0";
@@ -167,7 +172,7 @@ export class AnalysisReport {
       Handlebars.registerPartial('standardizationTable', standardizationtable);
 
       const template = await this.compileFile(templateDir, 'report-template.html');
-      return template(data)
+      return template(data);
     } catch (error) {
       throw new Error('Cannot create HTML report template.' + error);
     }
@@ -176,7 +181,10 @@ export class AnalysisReport {
   async pdf(report: ReportInfo) {
     const html = await this.html(report);
     //for debugging, save the html file
-    // Fs.writeFileSync(Path.resolve(report.outputFolder, report.filename + "-test.html"), html)
+    if (this.debug) {
+      Fs.writeFileSync(Path.resolve(report.outputFolder, report.filename + "-test.html"), html)
+    }
+
     const browser = await Puppeteer.launch({args: ['--no-sandbox']});
     const page = await browser.newPage();
     await page.setContent(html);
