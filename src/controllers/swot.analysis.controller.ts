@@ -31,54 +31,53 @@ export default class SwotAnalysisController {
     let pythonRun, octaveRun;
     // download raw data to local folder
     const storage = new BlobStorage();
-    await storage.download(process.env.AZURE_DOWNLOAD_CONTAINER, req.query.filename, join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, req.query.filename));
+    // allow prefixes to saved file name for debugging purposes
+    const prefix = req.query.prefix ? req.query.prefix+'-' : '';
+    const filename = prefix + req.query.filename;
+    await storage.download(process.env.AZURE_DOWNLOAD_CONTAINER, req.query.filename, join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, filename));
 
     let currDate : number;
     currDate = new Date().getTime();
     try {
       // analyze python
-      pythonRun = this.analyzePython(req.query.filename, req.query.country, req.query.project, req.query.fieldsite, req.query.dataset);
-      // const reportImage = join(process.env.PYTHON_OUTPUT_FOLDER, req.query.filename.replace('.csv', '.png'));
-      // email results to recipient - disabled in favor of consolidated report
-      // mailer.mailUser(req.query.recipient, process.env.PYTHON_EMAIL_SUBJECT, content, reportImage);
+      pythonRun = this.analyzePython(filename, req.query.country, req.query.project, req.query.fieldsite, req.query.dataset);
     } catch (e) {
-      // mailer.mailUser(req.query.recipient, process.env.PYTHON_EMAIL_SUBJECT + ' - ERROR', 'There was an error running the python analysis of this data. Please contact the administrator ( admin@safeh2o.app ) for more information.', null);
       mailer.mailAdmin(`Error occurred during Python analysis for : ${JSON.stringify(e)}. Query: ${JSON.stringify(req.query)}`);
     }
     try {
-      octaveRun = this.analyzeOctave(req.query.filename, req.query.country, req.query.project, req.query.fieldsite, req.query.dataset, req.query.recipient);
+      // analyze octave
+      octaveRun = this.analyzeOctave(filename, req.query.country, req.query.project, req.query.fieldsite, req.query.dataset, req.query.recipient);
     } catch (e) {
-      // mailer.mailUser(req.query.recipient, process.env.OCTAVE_EMAIL_SUBJECT + ' - ERROR', 'There was an error running the octave analysis of this data. Please contact the administrator ( admin@safeh2o.app ) for more information.', null);
       mailer.mailAdmin(`Error occurred during Octave analysis for : ${JSON.stringify(e)}. Query: ${JSON.stringify(req.query)}`);
     }
 
     Promise.all([pythonRun, octaveRun]).then(async ([_, octaveOutput]) => {
       try {
-        // for debugging only, uncomment the next line to simulate octave output
+        // for debugging only, uncomment the next line to simulate octave output if needed
         if (debug) {
           // octaveOutput = 'FRC=1.2';
         }
         const report = new AnalysisReport(debug);
-        const reportDataLines = readFileSync(join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, req.query.filename), "utf8").split('\n').length;
+        const reportDataLines = readFileSync(join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, filename), "utf8").split('\n').length;
         const webSkipped = await this.getSkippedRows(req.query.dataset);
       
         await report.pdf({
           pythonFolder: process.env.PYTHON_OUTPUT_FOLDER,
           octaveFolder: process.env.OCTAVE_OUTPUT_FOLDER,
           outputFolder: process.env.PYTHON_OUTPUT_FOLDER,
-          filename: req.query.filename.replace('.csv', ''),
+          filename: filename.replace('.csv', ''),
           reportDate: new Date(Date.now()).toLocaleDateString("en-CA"),
           countryName: this.parseBeforeDash(req.query.country),
           projectName: this.parseBeforeDash(req.query.project),
           fieldSiteName: this.parseBeforeDash(req.query.fieldsite),
-          datasetName: req.query.filename.split("__")[0],
+          datasetName: filename.split("__")[0],
           numSamples: (reportDataLines - 1).toString(),
-          numOptimize: req.query.filename.split("__")[req.query.filename.split("__").length-2],
-          confidenceLevel: this.getConfidenceLevel(req.query.filename.split("__")[req.query.filename.split("__").length-1].replace('.csv', '')),
+          numOptimize: filename.split("__")[filename.split("__").length-2],
+          confidenceLevel: this.getConfidenceLevel(filename.split("__")[filename.split("__").length-1].replace('.csv', '')),
           octaveOutput: octaveOutput,
           webSkipped: webSkipped
         });
-        const pdfFilename = req.query.filename.replace('.csv', '.pdf');
+        const pdfFilename = filename.replace('.csv', '.pdf');
         storage.save(req.query.country, `${req.query.project}/${req.query.fieldsite}/${req.query.dataset}/analysis/${pdfFilename}`, join(process.env.PYTHON_OUTPUT_FOLDER, pdfFilename));
         mailer.mailUser(req.query.recipient, process.env.EMAIL_SUBJECT, process.env.EMAIL_BODY, join(process.env.PYTHON_OUTPUT_FOLDER, pdfFilename));
 
@@ -92,7 +91,7 @@ export default class SwotAnalysisController {
           console.log(delta);
         }
         else {
-          this.cleanUpFiles(req.query.filename);
+          this.cleanUpFiles(filename);
         }
       }
     });

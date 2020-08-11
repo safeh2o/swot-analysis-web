@@ -4,7 +4,7 @@ import { spawn } from 'child-process-promise';
 import { format } from 'util';
 
 export class OctaveAnalysisRunner implements Runner {
-  run(input: string, outputFolder: string, _output: string): Promise<any> {
+  async run(input: string, outputFolder: string, _output: string): Promise<any> {
     
     return new Promise<any>((resolve, reject) => {
 
