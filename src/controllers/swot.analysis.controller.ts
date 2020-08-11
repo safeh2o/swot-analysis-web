@@ -14,7 +14,7 @@ export default class SwotAnalysisController {
 
   public async index(req: Request, res: Response, next: Function): Promise<void> {
 
-    const debug = true;
+    const debug = false;
 
     console.log(`Received a request with parameters: ${JSON.stringify(req.query)}`);
 
@@ -54,8 +54,8 @@ export default class SwotAnalysisController {
     Promise.all([pythonRun, octaveRun]).then(async ([_, octaveOutput]) => {
       try {
         // for debugging only, uncomment the next line to simulate octave output if needed
-        if (debug) {
-          // octaveOutput = 'FRC=1.2';
+        if (debug && !octaveRun) {
+          octaveOutput = 'FRC=1.2';
         }
         const report = new AnalysisReport(debug);
         const reportDataLines = readFileSync(join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, filename), "utf8").split('\n').length;

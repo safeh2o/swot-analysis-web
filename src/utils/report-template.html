@@ -56,7 +56,11 @@
         border-color: red;
         border-width: 2px;
         border-style: solid;
-        height: 100%;
+      }
+
+      /* For empty cells, fill them with whitespace to render the border around the cell */
+      .red-cell:empty::after {
+        content: "\00A0";
       }
 
     </style>
