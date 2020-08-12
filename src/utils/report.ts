@@ -191,6 +191,7 @@ export class AnalysisReport {
 
     await page.emulateMediaType('print');
     return page.pdf({
+          margin: { top: '0.5in', bottom: '0.5in', left: '0.5in', right: '0.5in' },
       path: Path.resolve(report.outputFolder, report.filename + (report.filename.endsWith(".pdf") ? '' : '.pdf'))
     })
   }
