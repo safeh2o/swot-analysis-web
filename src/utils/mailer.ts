@@ -9,7 +9,7 @@ export function mail(from, to, subject, content, attachment) {
     from: from,
     to: to,
     subject: subject,
-    html: content,
+    html: escapeHtml(content),
     inline: null
   };
 
@@ -23,6 +23,16 @@ export function mail(from, to, subject, content, attachment) {
     }
     console.log(`Email sent to ${to} with subject ${subject}`);
   });
+}
+
+export function escapeHtml(unsafe) {
+  return unsafe
+       .replace(/&/g, "&amp;")
+       .replace(/</g, "&lt;")
+       .replace(/>/g, "&gt;")
+       .replace(/"/g, "&quot;")
+       .replace(/'/g, "&#039;")
+       .replace(/\\n/g, "<br>");
 }
 
 export function mailUser(to, subject, content, attachment) {
