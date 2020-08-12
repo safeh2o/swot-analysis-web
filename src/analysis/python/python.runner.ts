@@ -17,12 +17,13 @@ export class PythonAnalysisRunner implements Runner {
     console.log("Running Python with arguments: ", options.args);
 
     return new Promise<any[]>((resolve, reject) => {
-      PythonShell.run(env.PYTHON_SCRIPT_FILE, options, function (err, results) {
+      PythonShell.run(env.PYTHON_SCRIPT_FILE, options, (err, results) => {
         if (err) {
-          console.log('Error occurred while running Python script', err);
-          reject(err);
+          console.error('Error occurred while running Python script', err.stack);
+          reject(err.stack);
+        } else {
+          resolve(results);
         }
-        resolve(results);
       });  
     });
   }

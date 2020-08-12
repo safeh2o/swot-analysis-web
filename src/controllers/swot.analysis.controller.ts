@@ -4,7 +4,7 @@ import { OctaveAnalysisRunner } from '../analysis/octave/octave.runner';
 import { BlobStorage } from '../storage/blob.service';
 import { env } from 'process';
 import { join, basename } from 'path';
-import { readFileSync, readdir, unlinkSync, existsSync, mkdirSync, unlink  } from 'fs';
+import { readFileSync, readdir, unlinkSync, existsSync, mkdirSync, unlink, readFile  } from 'fs';
 import * as mailer from '../utils/mailer';
 import * as rimraf from 'rimraf';
 import { AnalysisReport } from '../utils/report';
@@ -28,7 +28,7 @@ export default class SwotAnalysisController {
     }
     res.json({processing: 'true'});
 
-    let pythonRun, octaveRun;
+    let pythonRun: Promise<string>, octaveRun: Promise<string>;
     // download raw data to local folder
     const storage = new BlobStorage();
     // allow prefixes to saved file name for debugging purposes
@@ -38,20 +38,27 @@ export default class SwotAnalysisController {
 
     let currDate : number;
     currDate = new Date().getTime();
-    try {
-      // analyze python
-      pythonRun = this.analyzePython(filename, req.query.country, req.query.project, req.query.fieldsite, req.query.dataset);
-    } catch (e) {
-      mailer.mailAdmin(`Error occurred during Python analysis for : ${JSON.stringify(e)}. Query: ${JSON.stringify(req.query)}`);
-    }
-    try {
-      // analyze octave
-      octaveRun = this.analyzeOctave(filename, req.query.country, req.query.project, req.query.fieldsite, req.query.dataset, req.query.recipient);
-    } catch (e) {
-      mailer.mailAdmin(`Error occurred during Octave analysis for : ${JSON.stringify(e)}. Query: ${JSON.stringify(req.query)}`);
-    }
 
-    Promise.all([pythonRun, octaveRun]).then(async ([_, octaveOutput]) => {
+    // analyze python
+    pythonRun = this.analyzePython(filename, req.query.country, req.query.project, req.query.fieldsite, req.query.dataset)
+    .catch((err) => {
+      console.error(`Error occurred during Python analysis for: ${JSON.stringify(err)}. Query: ${JSON.stringify(req.query)}`);
+      mailer.mailAdmin(`Error occurred during Python analysis for : ${JSON.stringify(err)}. Query: ${JSON.stringify(req.query)}`);
+      return '';
+    });
+
+    // analyze octave
+    octaveRun = this.analyzeOctave(filename, req.query.country, req.query.project, req.query.fieldsite, req.query.dataset, req.query.recipient)
+    .catch((err) => {
+      console.error(`Error occurred during Octave analysis for: ${JSON.stringify(err)}. Query: ${JSON.stringify(req.query)}`);
+      mailer.mailAdmin(`Error occurred during Octave analysis for : ${JSON.stringify(err)}. Query: ${JSON.stringify(req.query)}`);
+      return '0.0';
+    });
+
+    Promise.all([
+      pythonRun,
+      octaveRun
+    ]).then(async ([_, octaveOutput]) => {
       try {
         // for debugging only, uncomment the next line to simulate octave output if needed
         if (debug && !octaveRun) {
@@ -61,7 +68,7 @@ export default class SwotAnalysisController {
         const reportDataLines = readFileSync(join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, filename), "utf8").split('\n').length;
         const webSkipped = await this.getSkippedRows(req.query.dataset);
       
-        await report.pdf({
+        const pdfData = {
           pythonFolder: process.env.PYTHON_OUTPUT_FOLDER,
           octaveFolder: process.env.OCTAVE_OUTPUT_FOLDER,
           outputFolder: process.env.PYTHON_OUTPUT_FOLDER,
@@ -76,14 +83,16 @@ export default class SwotAnalysisController {
           confidenceLevel: this.getConfidenceLevel(filename.split("__")[filename.split("__").length-1].replace('.csv', '')),
           octaveOutput: octaveOutput,
           webSkipped: webSkipped
-        });
+        };
+
+        await report.pdf(pdfData);
         const pdfFilename = filename.replace('.csv', '.pdf');
         await storage.save(req.query.country, `${req.query.project}/${req.query.fieldsite}/${req.query.dataset}/analysis/${pdfFilename}`, join(process.env.PYTHON_OUTPUT_FOLDER, pdfFilename));
         mailer.mailUser(req.query.recipient, process.env.EMAIL_SUBJECT, process.env.EMAIL_BODY, join(process.env.PYTHON_OUTPUT_FOLDER, pdfFilename));
 
       } catch (e) {
         console.log("Error while creating and emailing consolidated report", e);
-        mailer.mailUser(req.query.recipient, process.env.EMAIL_SUBJECT + ' - ERROR', 'There was an error mailing the analysis of this data. Please contact the administrator ( admin@safeh2o.app ) for more information.', null);
+        mailer.mailUser(req.query.recipient, process.env.EMAIL_SUBJECT + ' - ERROR', `There was an error with the analysis of a dataset you recently uploaded (${filename}). Please contact the administrator (admin@safeh2o.app) for more information.`, null);
         mailer.mailAdmin(`Error occurred while e-mailing analysis for: ${JSON.stringify(e)}. Query: ${JSON.stringify(req.query)}`);
       } finally {
         const delta = new Date().getTime() - currDate;
@@ -94,6 +103,9 @@ export default class SwotAnalysisController {
           this.cleanUpFiles(filename);
         }
       }
+    }).catch((error) => {
+      console.error(`Error occurred during analysis for: ${JSON.stringify(error)}. Query: ${JSON.stringify(req.query)}`);
+      mailer.mailAdmin(`Error occurred during analysis for: ${JSON.stringify(error)}. Query: ${JSON.stringify(req.query)}`);
     });
   }
 
@@ -150,18 +162,23 @@ export default class SwotAnalysisController {
       const nameHTMLInFolder = join(process.env.PYTHON_OUTPUT_FOLDER, nameHTML);
       const reportImage = name.replace('.csv', '.png');
       const reportImageInFolder = join(process.env.PYTHON_OUTPUT_FOLDER, reportImage);
-      try {
-        await runner.run(join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, name), process.env.PYTHON_OUTPUT_FOLDER, name);
-        // const storageResultCSV = await storage.save("swot-analysis-python", nameCSV, join(env.PYTHON_WORKING_DIR, nameCSV));
-        // save in country/project/fieldsite/dataset_id/analysis/python
-        const pythonResults = await storage.save(country, `${project}/${fieldsite}/${dataset}/analysis/python/${nameHTML}`, nameHTMLInFolder);
-        await storage.save(country, `${project}/${fieldsite}/${dataset}/analysis/python/${reportImage}`, reportImageInFolder);
-      } catch (e) {
-        reject(e);
-      }
+
+      runner.run(join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, name), process.env.PYTHON_OUTPUT_FOLDER, name)
+        .then(() => {
+          // save in country/project/fieldsite/dataset_id/analysis/python
+          storage.save(country, `${project}/${fieldsite}/${dataset}/analysis/python/${nameHTML}`, nameHTMLInFolder);
+          storage.save(country, `${project}/${fieldsite}/${dataset}/analysis/python/${reportImage}`, reportImageInFolder);
+
+          readFile(nameHTMLInFolder, {encoding: 'utf-8'}, (content) => {
+            resolve(content)
+          });
+
+        }).catch((err) => {
+          reject(err);
+        });
+
       // console.log(`Python results are : ${pythonResults}`);
-      let content = readFileSync(nameHTMLInFolder, {encoding: 'utf8'});
-      resolve(content);
+      // let content = readFileSync(nameHTMLInFolder, {encoding: 'utf8'});
     });
   }
 
@@ -174,32 +191,28 @@ export default class SwotAnalysisController {
         mkdirSync(outputFolder);
       }
 
-      try {
-        // octaveOutput = await runner.run(join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, name), outputFolder, name);
-        runner.run(join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, name), outputFolder, name)
-        .then((octaveOutput) => {
+      // octaveOutput = await runner.run(join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, name), outputFolder, name);
+      runner.run(join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, name), outputFolder, name)
+      .then((octaveOutput) => {
 
-          const promises = [];
-          readdir(outputFolder, (err, files) => {
-            if (err) {
-                return ('Unable to scan directory: ' + err);
-            }
-            files.forEach((file) => {
-              promises.push(storage.save(country, `${project}/${fieldsite}/${dataset}/analysis/octave/${basename(file)}`, join(outputFolder, file)));
-            });
-          });
-
-          // wait for all files to upload before generating report
-          Promise.all(promises).then(() => {
-            resolve(octaveOutput);
+        const promises = [];
+        readdir(outputFolder, (err, files) => {
+          if (err) {
+              return ('Unable to scan directory: ' + err);
+          }
+          files.forEach((file) => {
+            promises.push(storage.save(country, `${project}/${fieldsite}/${dataset}/analysis/octave/${basename(file)}`, join(outputFolder, file)));
           });
         });
 
-        // disabled in favor of consolidated report
-        //await mailer.mailAllFilesInFolder(outputFolder, recipient, process.env.FROM_ADDRESS, process.env.OCTAVE_EMAIL_SUBJECT, 'Please find analysis results attached.');
-      } catch (e) {
+        // wait for all files to upload before generating report
+        Promise.all(promises).then(() => {
+          resolve(octaveOutput);
+        });
+      }).catch((e) => {
         reject(e);
-      }
+      });
+
     });
   }
 }

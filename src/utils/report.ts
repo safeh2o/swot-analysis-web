@@ -32,7 +32,7 @@ export type ReportInfo = {
 
 export class AnalysisReport {
   debug: boolean;
-  
+
   constructor(debug = false) {
     this.debug = debug;
   }
@@ -62,10 +62,10 @@ export class AnalysisReport {
     if (Fs.existsSync(skippedRowsFilename)) {
       try {
         Fs.createReadStream(skippedRowsFilename)
-        .pipe(csv())
-        .on('data', (row) => {
-          octaveSkippedRows.push(row);
-        });
+          .pipe(csv())
+          .on('data', (row) => {
+            octaveSkippedRows.push(row);
+          });
       } catch (e) {
         console.log(`Error while parsing skipped data rows for EO: ${e}`);
       }
@@ -74,10 +74,10 @@ export class AnalysisReport {
     if (Fs.existsSync(octaveRulesetFilename)) {
       try {
         Fs.createReadStream(octaveRulesetFilename)
-        .pipe(csv())
-        .on('data', (row) => {
-          octaveRuleset.push(row);
-        });
+          .pipe(csv())
+          .on('data', (row) => {
+            octaveRuleset.push(row);
+          });
       } catch (e) {
         console.log(`Error while parsing standardized ruleset for EO: ${e}`);
       }
@@ -95,7 +95,7 @@ export class AnalysisReport {
       try {
         octaveFRCDist = report.octaveOutput.substring(report.octaveOutput.indexOf("FRC=") + 4);
         octaveFRCDist = octaveFRCDist.split(";")[0];
-      } catch(e) {
+      } catch (e) {
         console.log(`Error while parsing FRC= value from octave output: ${report.octaveOutput}`);
         console.log(`Ensure octave command in .env file looks like this: octave-cli --eval "[~,frc]=engmodel('<INPUTFILE>', '<OUTPUTFILE>'); printf('FRC=%.1f;', frc);"`);
       }
@@ -185,15 +185,25 @@ export class AnalysisReport {
       Fs.writeFileSync(Path.resolve(report.outputFolder, report.filename + "-test.html"), html)
     }
 
-    const browser = await Puppeteer.launch({args: ['--no-sandbox']});
-    const page = await browser.newPage();
-    await page.setContent(html);
-
-    await page.emulateMediaType('print');
-    return page.pdf({
+    return Puppeteer.launch({ args: ['--no-sandbox'] })
+      .then((browser) => {
+        return browser.newPage()
+      }).then((page) => {
+        return new Promise<Puppeteer.Page>((resolve) => {
+          page.setContent(html);
+          resolve(page);
+        })
+      }).then((page) => {
+        return new Promise<Puppeteer.Page>((resolve) => {
+          page.emulateMediaType('print');
+          resolve(page);
+        })
+      }).then((page) => {
+        return page.pdf({
           margin: { top: '0.5in', bottom: '0.5in', left: '0.5in', right: '0.5in' },
-      path: Path.resolve(report.outputFolder, report.filename + (report.filename.endsWith(".pdf") ? '' : '.pdf'))
-    })
+          path: Path.resolve(report.outputFolder, report.filename + (report.filename.endsWith(".pdf") ? '' : '.pdf'))
+        })
+      });
   }
 
   async compileFile(templateDir: string, filename: string) {
