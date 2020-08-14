@@ -63,6 +63,11 @@
         content: "\00A0";
       }
 
+      .full-image {
+        height: 100%;
+        width: auto;
+      }
+
     </style>
   </head>
   <body>
@@ -149,19 +154,15 @@
             Engineering Optimization/Numerical Modelling
             </strong></h1><br/><br/>
           <div class="center">
-            <img src="{{octaveBackcheck}}" />
+            <img class="full-image" src="{{octaveBackcheck}}" />
           </div>
-          <br/><br/><br/><br/>
+          <br/><br/>
+          <div class="center">
+            <img class="full-image" src="{{octaveContour}}" />
+          </div>
+
           {{{octaveExcelOutput}}}
-          <br/>
-          <br/>
-          <div class="center pagebreak">
-            <img src="{{octaveContour}}" />
-          </div>
-          <br/>
-          <br/>
-          <br/>
-          <br/>
+          
           <h1 class="center pagebreak"><strong>Appendix 2: Raw Outputs
             Artificial Neural Networks
             </strong></h1>
