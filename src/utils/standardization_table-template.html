@@ -1,0 +1,22 @@
+<table class="table center fill-whitespace" border="1">
+    <thead>
+        <tr>
+            {{#each dataHeaders}}
+            <th>{{this}}</th>
+            {{/each}}
+        </tr>
+    </thead>
+    <tbody>
+        {{#each skippedRows as |row|}}
+        <tr>
+        {{#each ../dataHeaders as |header|}}
+            {{#ifin row.reason header}}
+            <td><div class="red-cell">{{lookup row header}}</div></td>
+            {{else}}
+            <td>{{lookup row header}}</td>
+            {{/ifin}}
+        {{/each}}
+        </tr>
+        {{/each}}
+    </tbody>
+</table>

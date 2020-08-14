@@ -42,6 +42,32 @@
         margin-left: -900px;
         margin-top: 620px;
       }
+
+      .fit-content {
+        width: 1px;
+        white-space: nowrap;
+      }
+
+      table.fill-whitespace td {
+        height: 0px;
+      }
+
+      .red-cell {
+        border-color: red;
+        border-width: 2px;
+        border-style: solid;
+      }
+
+      /* For empty cells, fill them with whitespace to render the border around the cell */
+      .red-cell:empty::after {
+        content: "\00A0";
+      }
+
+      .full-image {
+        height: 100%;
+        width: auto;
+      }
+
     </style>
   </head>
   <body>
@@ -116,33 +142,27 @@
           <br/>
           
           <div class="center"><h2><em>Quick Summary - Input Data: </em></h2></div>
-          <br/>
           <div class="center">
-              <img src="{{pythonFRCImage}}" />
+              <img style="height: 80%" src="{{pythonFRCImage}}" />
             </div>
           <br/><br/>
           <p class="center"><strong><em>Please continue monitoring FRC at distribution points and households. When you get to approx. 150 new samples, please upload again to generate an updated&nbsp;recommendation. </em></strong></p>
           <p>&nbsp;</p>
           <p class="center"><strong><em>For more information or if you need assistance, please contact: </em></strong><a href="mailto:support@safeh2o.app"><strong><em>support@safeh2o.app</em></strong></a><strong>.</strong></p>
-          <br/><br/><br/><br/>
-          <h1 class="center"><strong> 
+          <h1 class="center pagebreak"><strong> 
             Appendix 1: Raw Outputs
             Engineering Optimization/Numerical Modelling
             </strong></h1><br/><br/>
           <div class="center">
-            <img src="{{octaveBackcheck}}" />
+            <img class="full-image" src="{{octaveBackcheck}}" />
           </div>
-          <br/><br/><br/><br/>
+          <br/><br/>
+          <div class="center">
+            <img class="full-image" src="{{octaveContour}}" />
+          </div>
+
           {{{octaveExcelOutput}}}
-          <br/>
-          <br/>
-          <div class="center pagebreak">
-            <img src="{{octaveContour}}" />
-          </div>
-          <br/>
-          <br/>
-          <br/>
-          <br/>
+          
           <h1 class="center pagebreak"><strong>Appendix 2: Raw Outputs
             Artificial Neural Networks
             </strong></h1>
@@ -151,5 +171,55 @@
           <h3 class="center">{{deltaT}}</h3>
           <br/>
           {{{pythonHtmlReport}}}
+          <h1 class="center pagebreak"><strong>Appendix 3: Data Audit Log</strong></h1>
+          <div class="center">{{> standardizationFlowchart flowchart_counts}}</div>
+          
+          <br>
+          <h3>Web App Standardization:</h3>
+          {{#if webRuleset}}
+            <h4>Rules applied ({{webSkipped.length}} matches):</h4>
+            <ul>
+              <li>Invalid tapstand date/time. Matches: {{webRuleset.ts_datetime}}</li>
+              <li>Invalid tapstand FRC. Matches: {{webRuleset.ts_frc}}</li>
+              <li>Invalid household date/time. Matches {{webRuleset.hh_datetime}}</li>
+              <li>Invalid household FRC. Matches: {{webRuleset.hh_frc}}</li>
+            </ul>
+          {{/if}}
+          {{#if webSkipped}}
+            {{> standardizationTable skippedRows=webSkipped}}
+          {{else}}
+          <h4>No data was skipped from the raw input data</h4>
+          {{/if}}
+
+          <br>
+          <h3>ANN Standardization:</h3>
+          {{#if pythonRuleset}}
+            <h4>Rules applied ({{pythonSkippedCount}} matches):</h4>
+            {{{pythonRuleset}}}
+            {{/if}}
+            {{#if pythonSkippedHtml}}
+            {{{pythonSkippedHtml}}}
+          {{else}}
+          <h4>No data was skipped from the ANN model</h4>
+          {{/if}}
+
+          <br>
+          <h3>EO Standardization:</h3>
+          {{#if octaveRuleset}}
+            <h4>Rules applied ({{octaveSkipped.length}} matches):</h4>
+            <ul>
+              {{#each octaveRuleset}}
+              <li>{{Description}}. Matches: {{Count}}</li>
+              {{/each}}
+            </ul>
+          {{/if}}
+          {{#if octaveSkipped}}
+            {{> standardizationTable skippedRows=octaveSkipped}}
+          {{else}}
+          <h4>No data was skipped from the EO model</h4>
+          {{/if}}
+
+          <br/>
   </body>
   </html>
+  
