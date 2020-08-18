@@ -53,7 +53,7 @@ export class AnalysisReport {
     var workbook = XLSX.readFile(Path.resolve(report.octaveFolder, report.filename + ".csv", report.filename + "_Results.xlsx"));
     const octaveExcelOutputFull = XLSX.utils.sheet_to_html(workbook.Sheets[workbook.SheetNames[0]]);
     const $octave = cheerio.load(octaveExcelOutputFull);
-    const octaveExcelOutput = `<table class="table center octaveTable pagebreak" border="1">${$octave('table').html()}</table>`;
+    const octaveExcelOutput = `<table class="table center octaveTable" border="1">${$octave('table').html()}</table>`;
     //get skipped rows from octave output
     const skippedRowsFilename = Path.resolve(report.octaveFolder, report.filename + '.csv', report.filename + '_SkippedRows.csv');
     // get standardization ruleset from octave output
