@@ -51,7 +51,7 @@ export default class SwotAnalysisController {
     octaveRun = this.analyzeOctave(filename, req.query.country, req.query.project, req.query.fieldsite, req.query.dataset, req.query.recipient)
     .catch((err) => {
       console.error(`Error occurred during Octave analysis for: ${JSON.stringify(err)}. Query: ${JSON.stringify(req.query)}`);
-      mailer.mailAdmin(`Error occurred during Octave analysis for : ${JSON.stringify(err)}. Query: ${JSON.stringify(req.query)}`);
+      mailer.mailAdmin(`Error occurred during Octave analysis for: ${JSON.stringify(err)}. Query: ${JSON.stringify(req.query)}`);
       return '0.0';
     });
 

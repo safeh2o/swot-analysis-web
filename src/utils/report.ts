@@ -42,6 +42,7 @@ export class AnalysisReport {
     //get base64 for octave images
     const octaveBackcheck = await imageDataUri.encodeFromFile(Path.resolve(report.octaveFolder, report.filename + ".csv", report.filename + "_Backcheck.png"));
     const octaveContour = await imageDataUri.encodeFromFile(Path.resolve(report.octaveFolder, report.filename + ".csv", report.filename + "_Contour.png"));
+    const octaveHistogram = await imageDataUri.encodeFromFile(Path.resolve(report.octaveFolder, report.filename + ".csv", report.filename + "_Histogram.png"));
     //get the ANN table
     const $ = cheerio.load(Fs.readFileSync(Path.resolve(report.pythonFolder, report.filename + ".html")));
     const pythonReport = `<table class="table center" border="1">${$('#annTable').html()}</table>`;
@@ -138,6 +139,7 @@ export class AnalysisReport {
         octaveBackcheck: octaveBackcheck,
         octaveExcelOutput: octaveExcelOutput,
         octaveContour: octaveContour,
+        octaveHistogram: octaveHistogram,
         pythonHtmlReport: pythonReport,
         annVersion: annVersion,
         deltaT: deltaT,
