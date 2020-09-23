@@ -11,6 +11,6 @@ REMOTE=$(cd ${REPODIR} && git rev-parse ${UPSTREAM})
 echo "Checking for updates on $(date)" >> ${REPODIR}/updates.log
 if [[ $LOCAL != $REMOTE ]]; then
 	echo "Found an update: commit ${REMOTE}" >> ${REPODIR}/updates.log
-	(cd ${REPODIR} && git pull ${UPSTREAM_ORIGIN} ${UPSTREAM_BRANCH} && npm run build && pm2 restart 0)
+	(cd ${REPODIR} && git pull ${UPSTREAM_ORIGIN} ${UPSTREAM_BRANCH} && npm install && npm run build && pm2 restart 0)
 	echo "Analyzer was updated" >> ${REPODIR}/updates.log
 fi

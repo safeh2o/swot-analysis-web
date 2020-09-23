@@ -7,7 +7,10 @@ import * as cheerio from 'cheerio';
 import * as XLSX from 'xlsx';
 import * as Puppeteer from 'puppeteer';
 import * as csv from 'csv-parser';
-const ReadFile = Util.promisify(Fs.readFile)
+import { PDFDocument, PDFPage, degrees } from 'pdf-lib';
+
+const ReadFile = Util.promisify(Fs.readFile);
+const WriteFile = Util.promisify(Fs.writeFile);
 
 export type ReportInfo = {
   //location where ANN files reside
@@ -187,31 +190,42 @@ export class AnalysisReport {
       Fs.writeFileSync(Path.resolve(report.outputFolder, report.filename + "-test.html"), html)
     }
 
-    return Puppeteer.launch({ args: ['--no-sandbox'] })
-      .then((browser) => {
-        return browser.newPage()
-      }).then((page) => {
-        return new Promise<Puppeteer.Page>((resolve) => {
-          page.setContent(html);
-          resolve(page);
-        })
-      }).then((page) => {
-        return new Promise<Puppeteer.Page>((resolve) => {
-          page.emulateMediaType('print');
-          resolve(page);
-        })
-      }).then((page) => {
-        return page.pdf({
-          margin: { top: '0.5in', bottom: '0.5in', left: '0.5in', right: '0.5in' },
-          path: Path.resolve(report.outputFolder, report.filename + (report.filename.endsWith(".pdf") ? '' : '.pdf'))
-        })
-      });
+    const browser = await Puppeteer.launch({ args: ['--no-sandbox'] });
+    
+    const page = await browser.newPage();
+    await page.setContent(html);
+    await page.emulateMediaType('print');
+
+    const pdfPath = Path.resolve(report.outputFolder, report.filename + (report.filename.endsWith(".pdf") ? '' : '.pdf'));
+
+    let pdf = await page.pdf({
+      margin: { top: '0.5in', bottom: '0.5in', left: '0.5in', right: '0.5in' },
+      scale: 0.7
+    })
+
+    // pdf = Buffer.from(await this.rotatePage(pdf, 90, 5));
+
+    await WriteFile(pdfPath, pdf);
+
+    return pdf;
   }
 
   async compileFile(templateDir: string, filename: string) {
     const templatePath = Path.resolve(templateDir, filename);
     const content = await ReadFile(templatePath, 'utf8');
     return Handlebars.compile(content);
+  }
+
+  async rotatePage(pdf: Buffer, degreeAngle: number = 90, ...pageNumbers: number[]) {
+    const pdfDoc = await PDFDocument.load(pdf);
+
+    let page: PDFPage;
+    pageNumbers.forEach(pageNumber => {
+      page = pdfDoc.getPage(pageNumber-1);
+      page.setRotation(degrees(degreeAngle));
+    });
+
+    return pdfDoc.save();
   }
 }
 
