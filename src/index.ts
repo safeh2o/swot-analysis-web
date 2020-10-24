@@ -4,6 +4,7 @@ import * as cors from 'cors';
 import { config as dotenvConfig } from 'dotenv'
 import { env } from 'process';
 import * as helmet from 'helmet';
+import * as express from 'express';
 
 dotenvConfig({path: __dirname + '/.env', debug: (env.DEBUG != null || env.DEV != null) })
 
@@ -16,23 +17,11 @@ console.log(`Server starting on ${env.HTTP_PORT} \n
             with Octave filename ${env.OCTAVE_SCRIPT_FILE} \n`)
 
 // tslint:disable-next-line: no-require-imports
-const app = require('./config/express').default()
+const app = express();
 
-app.use(helmet())
+app.use(helmet());
+require('./config/express').default(app)
 
-if (env.CORS_ALLOWED_ORIGINS) {
-  const allowedOrigins = env.CORS_ALLOWED_ORIGINS.split(',');
-  app.use(cors({
-    origin: function(origin, callback){
-      
-      if(allowedOrigins.indexOf(origin) === -1){
-        const msg = 'CORS Policy does not allow this origin.';
-        return callback(new Error(msg), false);
-      }
-      return callback(null, true);
-    }
-  }));
-}
 
 const server: http.Server = new http.Server(app)
 

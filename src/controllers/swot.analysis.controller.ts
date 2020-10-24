@@ -106,7 +106,9 @@ export default class SwotAnalysisController {
     }).catch((error) => {
       console.error(`Error occurred during analysis for: ${JSON.stringify(error)}. Query: ${JSON.stringify(req.query)}`);
       mailer.mailAdmin(`Error occurred during analysis for: ${JSON.stringify(error)}. Query: ${JSON.stringify(req.query)}`);
-    });
+    })
+
+    next();
   }
 
   public async getSkippedRows(datasetId: string) {

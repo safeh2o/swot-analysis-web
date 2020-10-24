@@ -4,25 +4,20 @@ import * as express from 'express'
 import * as logger from 'morgan'
 import * as path from 'path'
 import config from './config'
+import * as middleware from './middleware';
 
-export default function() {
-  const app: express.Express = express()
-
+export default function(app) {
   app.use(logger('common'))
-  app.use(bodyParser.json())
+  // app.use(bodyParser.json())
   app.use(bodyParser.urlencoded({ extended: false }))
   app.use(cookieParser())
   app.use(express.static(path.join(__dirname, '../../src/public')))
 
+  app.use(middleware.allowIp);
+
   for (const route of config.globFiles(config.routes)) {
     require(path.resolve(route)).default(app)
   }
-
-  app.use(
-    (req: express.Request, res: express.Response, next: Function): void => {
-      next()
-    },
-  )
 
   return app
 }
