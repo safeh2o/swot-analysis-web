@@ -34,13 +34,13 @@ export default class SwotAnalysisController {
     // allow prefixes to saved file name for debugging purposes
     const prefix = req.query.prefix ? req.query.prefix+'-' : '';
     const filename = prefix + req.query.filename;
-    await storage.download(process.env.AZURE_DOWNLOAD_CONTAINER, req.query.filename, join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, filename));
+    await storage.download(process.env.AZURE_DOWNLOAD_CONTAINER, req.query.filename.toString(), join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, filename));
 
     let currDate : number;
     currDate = new Date().getTime();
 
     // analyze python
-    pythonRun = this.analyzePython(filename, req.query.country, req.query.project, req.query.fieldsite, req.query.dataset)
+    pythonRun = this.analyzePython(filename, req.query.country.toString(), req.query.project.toString(), req.query.fieldsite.toString(), req.query.dataset.toString())
     .catch((err) => {
       console.error(`Error occurred during Python analysis for: ${JSON.stringify(err)}. Query: ${JSON.stringify(req.query)}`);
       mailer.mailAdmin(`Error occurred during Python analysis for : ${JSON.stringify(err)}. Query: ${JSON.stringify(req.query)}`);
@@ -48,7 +48,7 @@ export default class SwotAnalysisController {
     });
 
     // analyze octave
-    octaveRun = this.analyzeOctave(filename, req.query.country, req.query.project, req.query.fieldsite, req.query.dataset, req.query.recipient)
+    octaveRun = this.analyzeOctave(filename, req.query.country.toString(), req.query.project.toString(), req.query.fieldsite.toString(), req.query.dataset.toString(), req.query.recipient.toString())
     .catch((err) => {
       console.error(`Error occurred during Octave analysis for: ${JSON.stringify(err)}. Query: ${JSON.stringify(req.query)}`);
       mailer.mailAdmin(`Error occurred during Octave analysis for: ${JSON.stringify(err)}. Query: ${JSON.stringify(req.query)}`);
@@ -66,7 +66,7 @@ export default class SwotAnalysisController {
         }
         const report = new AnalysisReport(debug);
         const reportDataLines = readFileSync(join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, filename), "utf8").split('\n').length;
-        const webSkipped = await this.getSkippedRows(req.query.dataset);
+        const webSkipped = await this.getSkippedRows(req.query.dataset.toString());
       
         const pdfData = {
           pythonFolder: process.env.PYTHON_OUTPUT_FOLDER,
@@ -74,9 +74,9 @@ export default class SwotAnalysisController {
           outputFolder: process.env.PYTHON_OUTPUT_FOLDER,
           filename: filename.replace('.csv', ''),
           reportDate: new Date(Date.now()).toLocaleDateString("en-CA"),
-          countryName: this.parseBeforeDash(req.query.country),
-          projectName: this.parseBeforeDash(req.query.project),
-          fieldSiteName: this.parseBeforeDash(req.query.fieldsite),
+          countryName: this.parseBeforeDash(req.query.country.toString()),
+          projectName: this.parseBeforeDash(req.query.project.toString()),
+          fieldSiteName: this.parseBeforeDash(req.query.fieldsite.toString()),
           datasetName: filename.split("__")[0],
           numSamples: (reportDataLines - 1).toString(),
           numOptimize: filename.split("__")[filename.split("__").length-2],
@@ -87,12 +87,12 @@ export default class SwotAnalysisController {
 
         await report.pdf(pdfData);
         const pdfFilename = filename.replace('.csv', '.pdf');
-        await storage.save(req.query.country, `${req.query.project}/${req.query.fieldsite}/${req.query.dataset}/analysis/${pdfFilename}`, join(process.env.PYTHON_OUTPUT_FOLDER, pdfFilename));
-        mailer.mailUser(req.query.recipient, process.env.EMAIL_SUBJECT, process.env.EMAIL_BODY, join(process.env.PYTHON_OUTPUT_FOLDER, pdfFilename));
+        await storage.save(req.query.country.toString(), `${req.query.project.toString()}/${req.query.fieldsite.toString()}/${req.query.dataset.toString()}/analysis/${pdfFilename}`, join(process.env.PYTHON_OUTPUT_FOLDER, pdfFilename));
+        mailer.mailUser(req.query.recipient.toString(), process.env.EMAIL_SUBJECT, process.env.EMAIL_BODY, join(process.env.PYTHON_OUTPUT_FOLDER, pdfFilename));
 
       } catch (e) {
         console.log("Error while creating and emailing consolidated report", e);
-        mailer.mailUser(req.query.recipient, process.env.EMAIL_SUBJECT + ' - ERROR', `There was an error with the analysis of a dataset you recently uploaded (${filename}). Please contact the administrator (admin@safeh2o.app) for more information.`, null);
+        mailer.mailUser(req.query.recipient.toString(), process.env.EMAIL_SUBJECT + ' - ERROR', `There was an error with the analysis of a dataset you recently uploaded (${filename}). Please contact the administrator (admin@safeh2o.app) for more information.`, null);
         mailer.mailAdmin(`Error occurred while e-mailing analysis for: ${JSON.stringify(e)}. Query: ${JSON.stringify(req.query)}`);
       } finally {
         const delta = new Date().getTime() - currDate;
