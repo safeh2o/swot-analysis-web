@@ -10,6 +10,7 @@ COPY . /usr/src/app
 RUN npm run build
 
 ENV NODE_ENV production
+ENV HTTP_PORT 3000
 
 EXPOSE 3000
 

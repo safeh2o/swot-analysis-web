@@ -5,4 +5,28 @@ services:
     ports:
      - "3000:3000"
     volumes:
-     - .:/usr/src/app
+      - downloads:/var/downloads
+      - python:/src/python
+      - octave:/src/octave
+  # python:
+  #   build:
+  #     # context: https://github.com/dighr/swot-python-analysis.git#docker
+  #     context: swot-python-analysis
+  #   volumes:
+  #     - downloads:/var/downloads
+  #     - python:/app
+  # octave:
+  #   build:
+  #     # context: https://github.com/dighr/swot-octave-analysis.git#docker
+  #     context: swot-octave-analysis
+  #   volumes:
+  #     - downloads:/var/downloads
+  #     - octave:/app
+
+volumes:
+  downloads:
+    driver: local
+  octave:
+    driver: local
+  python:
+    driver: local
