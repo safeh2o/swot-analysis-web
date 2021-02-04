@@ -107,25 +107,13 @@ export class AnalysisReport {
 
     const dataHeaders = ['ts_datetime', 'ts_frc', 'hh_datetime', 'hh_frc', 'ts_wattemp', 'ts_cond'];
 
-    const webRuleset = {};
-    dataHeaders.forEach(col => {
-      webRuleset[col] = 0;
-    });
-
-    report.webSkipped.forEach(row => {
-      const col = row['reason'];
-      if (col)
-        webRuleset[col] += 1;
-    });
-
+    const numSamples = parseInt(report.numSamples);
     const flowchart_counts = {
-      'n_input': parseInt(report.numSamples) + report.webSkipped.length,
-      'x_web': report.webSkipped.length,
-      'n_web': report.numSamples,
+      'n_input': report.numSamples,
       'x_eo': octaveSkippedRows.length,
-      'n_eo': parseInt(report.numSamples) - octaveSkippedRows.length,
-      'x_ann': parseInt(pythonSkippedCount),
-      'n_ann': parseInt(report.numSamples) - parseInt(pythonSkippedCount)
+      'n_eo': numSamples - octaveSkippedRows.length,
+      'x_ann': pythonSkippedCount,
+      'n_ann': numSamples - parseInt(pythonSkippedCount)
     };
 
     try {
@@ -148,7 +136,6 @@ export class AnalysisReport {
         deltaT: deltaT,
         pythonFRCImage: annFRC,
         octaveFRCDist: octaveFRCDist,
-        webSkipped: report.webSkipped,
         pythonSkippedHtml: pythonSkippedHtml,
         pythonSkippedCount: pythonSkippedCount,
         pythonRuleset: pythonRuleset,
@@ -156,7 +143,6 @@ export class AnalysisReport {
         octaveRuleset: octaveRuleset,
         dataHeaders: dataHeaders,
         flowchart_counts: flowchart_counts,
-        webRuleset: webRuleset
       }
 
       const templateDir = Fs.existsSync('./static') ? './static' : './dist/static';
