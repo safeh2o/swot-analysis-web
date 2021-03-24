@@ -180,23 +180,6 @@
           <div class="center">{{> standardizationFlowchart flowchart_counts}}</div>
           
           <br>
-          <h3>Web App Standardization:</h3>
-          {{#if webRuleset}}
-            <h4>Rules applied ({{webSkipped.length}} matches):</h4>
-            <ul>
-              <li>Invalid tapstand date/time. Matches: {{webRuleset.ts_datetime}}</li>
-              <li>Invalid tapstand FRC. Matches: {{webRuleset.ts_frc}}</li>
-              <li>Invalid household date/time. Matches {{webRuleset.hh_datetime}}</li>
-              <li>Invalid household FRC. Matches: {{webRuleset.hh_frc}}</li>
-            </ul>
-          {{/if}}
-          {{#if webSkipped}}
-            {{> standardizationTable skippedRows=webSkipped}}
-          {{else}}
-          <h4>No data was skipped from the raw input data</h4>
-          {{/if}}
-
-          <br>
           <h3>ANN Standardization:</h3>
           {{#if pythonRuleset}}
             <h4>Rules applied ({{pythonSkippedCount}} matches):</h4>
