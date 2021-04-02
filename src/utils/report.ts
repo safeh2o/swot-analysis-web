@@ -34,11 +34,6 @@ export type ReportInfo = {
 }
 
 export class AnalysisReport {
-  debug: boolean
-
-  constructor(debug = false) {
-    this.debug = debug
-  }
 
   async html(report: ReportInfo) {
     //get base64 for octave images
@@ -242,7 +237,7 @@ export class AnalysisReport {
   async pdf(report: ReportInfo) {
     const html = await this.html(report)
     //for debugging, save the html file
-    if (this.debug) {
+    if (process.env.DEBUG?.toUpperCase() != 'FALSE') {
       Fs.writeFileSync(
         Path.resolve(report.outputFolder, report.filename + '-test.html'),
         html

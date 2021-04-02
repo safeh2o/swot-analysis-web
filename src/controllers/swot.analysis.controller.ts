@@ -24,7 +24,7 @@ export default class SwotAnalysisController {
     res: Response,
     next: Function
   ): Promise<void> {
-    const debug = false
+    const debug = env.DEBUG?.toUpperCase() != 'FALSE'
 
     console.log(
       `Received a request with parameters: ${JSON.stringify(req.query)}`
@@ -115,7 +115,7 @@ export default class SwotAnalysisController {
           if (debug && !octaveRun) {
             octaveOutput = 'FRC=1.2'
           }
-          const report = new AnalysisReport(debug)
+          const report = new AnalysisReport()
           const reportDataLines = readFileSync(
             join(process.env.AZURE_DOWNLOAD_LOCAL_FOLDER, filename),
             'utf8'
