@@ -38,9 +38,6 @@ RUN apt install -y zip
 COPY . /app
 RUN npm run build
 
-ENV NODE_ENV production
-ENV HTTP_PORT 3000
-
-EXPOSE ${HTTP_PORT}
+EXPOSE 5000
 
 CMD [ "npm", "run", "start" ]
