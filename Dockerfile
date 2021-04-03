@@ -18,7 +18,7 @@ RUN apt update -y && apt install -y npm \
 RUN git clone https://github.com/safeh2o/swot-python-analysis
 RUN git clone https://github.com/safeh2o/swot-octave-analysis
 
-RUN pip3 install -r swot-python-analysis/requirements.txt
+RUN pip3 install --no-cache-dir -r swot-python-analysis/requirements.txt
 
 RUN mkdir -p output/downloads \
     output/python \
