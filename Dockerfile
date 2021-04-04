@@ -36,6 +36,7 @@ RUN npm install
 RUN apt install -y zip
 
 COPY . /app
+RUN touch /app/.env
 RUN npm run build
 
 EXPOSE 5000
