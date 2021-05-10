@@ -35,7 +35,7 @@
     "handlebars": "^4.7.6",
     "helmet": "^3.22.0",
     "image-data-uri": "^2.0.1",
-    "lodash": "^4.17.19",
+    "lodash": "^4.17.21",
     "mailgun-js": "^0.22.0",
     "mongodb": "^3.5.9",
     "morgan": "^1.6.1",
