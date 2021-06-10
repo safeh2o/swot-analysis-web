@@ -147,11 +147,14 @@ export default class SwotAnalysisController {
 
           await report.pdf(pdfData)
           const pdfFilename = filename.replace('.csv', '.pdf')
+          const containerName =req.query.country.toString();
+          const blobName = `${req.query.project.toString()}/${req.query.fieldsite.toString()}/${req.query.dataset.toString()}/analysis/${pdfFilename}`;
           await storage.save(
-            req.query.country.toString(),
-            `${req.query.project.toString()}/${req.query.fieldsite.toString()}/${req.query.dataset.toString()}/analysis/${pdfFilename}`,
+            containerName,
+            blobName,
             join(process.env.PYTHON_OUTPUT_FOLDER, pdfFilename)
           )
+          await updateDatabase(req.query.dataset, containerName, blobName);
           mailer.mailUser(
             req.query.recipient.toString(),
             process.env.EMAIL_SUBJECT,
@@ -360,3 +363,18 @@ export default class SwotAnalysisController {
 }
 
 export const swotAnalysisController = new SwotAnalysisController()
+
+async function updateDatabase(datasetId: any, containerName: any, blobName: string) {
+    const client = await MongoClient.connect(process.env.MONGO_DB_CONNECTION_STRING, { useUnifiedTopology: true })
+
+    const db = await client.db()
+    const collection = await db.collection('datasets')
+    const query = { _id: new ObjectId(datasetId) }
+
+    const dataset = await collection.findOne(query);
+    dataset.update({containerName, blobName});
+
+    client.close()
+
+}
+
