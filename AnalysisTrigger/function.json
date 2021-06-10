@@ -1,0 +1,26 @@
+{
+  "scriptFile": "__init__.py",
+  "bindings": [
+    {
+      "name": "msg",
+      "type": "queueTrigger",
+      "direction": "in",
+      "queueName": "analysis-start",
+      "connection": "AzureWebJobsStorage"
+    },
+    {
+      "type": "blob",
+      "direction": "out",
+      "name": "annpayload",
+      "path": "queue-ann/{blobName}",
+      "connection": "AzureWebJobsStorage"
+    },
+    {
+      "type": "blob",
+      "direction": "out",
+      "name": "eopayload",
+      "path": "queue-eo/{blobName}",
+      "connection": "AzureWebJobsStorage"
+    }
+  ]
+}

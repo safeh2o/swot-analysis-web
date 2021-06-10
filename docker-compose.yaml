@@ -2,12 +2,13 @@ version: '3'
 services:
   web:
     build: .
+    image: 
     ports:
-     - "3000:3000"
-    volumes:
-      - downloads:/var/downloads
-      - python:/src/python
-      - octave:/src/octave
+     - "5000:5000"
+    # volumes:
+    #   - downloads:/var/downloads
+    #   - python:/src/python
+    #   - octave:/src/octave
   # python:
   #   build:
   #     # context: https://github.com/dighr/swot-python-analysis.git#docker
@@ -23,10 +24,10 @@ services:
   #     - downloads:/var/downloads
   #     - octave:/app
 
-volumes:
-  downloads:
-    driver: local
-  octave:
-    driver: local
-  python:
-    driver: local
+# volumes:
+#   downloads:
+#     driver: local
+#   octave:
+#     driver: local
+#   python:
+#     driver: local
