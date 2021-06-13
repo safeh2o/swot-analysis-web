@@ -5,4 +5,9 @@
 
 azure-functions
 azure-mgmt-containerinstance
+azure-mgmt-containerregistry
 azure-identity
+msrestazure
+
+pymongo
+azure-storage-blob

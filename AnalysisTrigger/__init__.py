@@ -14,7 +14,15 @@ from azure.mgmt.containerinstance.models import (
 )
 from azure.identity import ClientSecretCredential
 from msrestazure.azure_active_directory import ServicePrincipalCredentials
+import os
 
+TENANT_ID = os.getenv("TENANT_ID")
+CLIENT_ID = os.getenv("CLIENT_ID")
+CLIENT_SECRET = os.getenv("CLIENT_SECRET")
+SUBSCRIPTION_ID = os.getenv("SUBSCRIPTION_ID")
+REGISTRY_NAME = os.getenv("REGISTRY_NAME")
+RG_LOCATION = os.getenv("RG_LOCATION")
+RG_NAME = os.getenv("RG_NAME")
 
 
 def main(
@@ -25,36 +33,58 @@ def main(
         msg.get_body().decode("utf-8"),
     )
 
-    cred_dict = {
-        "tenant_id": "96b3e9df-6155-4dac-aed2-782885812aec",
-        "client_id": "8c6e424a-1a96-482c-90da-64419ebf6f05",
-        "client_secret": "f7XBbie3PhOSqR8v~rF6uL-BDZ.dxbHiWz",
-        "subscription_id": "1b9406a2-c83f-4aa8-b634-b4f2e5ecc603",
-    }
-    credential = ClientSecretCredential(client_id=cred_dict['client_id'],client_secret=cred_dict['client_secret'],tenant_id=cred_dict['tenant_id'])
+    msg_json = msg.get_json()
+    dataset_id = msg_json["datasetId"]
 
-    registry_plain_creds = get_cr_credentials(client_id=cred_dict['client_id'],client_secret=cred_dict['client_secret'],tenant_id=cred_dict['tenant_id'], subscription_id=cred_dict['subscription_id'])
+    credential = ClientSecretCredential(
+        client_id=CLIENT_ID,
+        client_secret=CLIENT_SECRET,
+        tenant_id=TENANT_ID,
+    )
 
-    registry_credentials = ImageRegistryCredential(server='swotregistry.azurecr.io', **registry_plain_creds)
-    ci_client = ContainerInstanceManagementClient(credential, subscription_id=cred_dict['subscription_id'])
-    resource_group = {"location": "eastus", "name": "alpha"}
-    # create_container_group(
-    #     ci_client, resource_group, "asasas", "swotregistry.azurecr.io/servereo:latest", registry_credentials
-    # )
+    registry_plain_creds = get_cr_credentials(
+        client_id=CLIENT_ID,
+        client_secret=CLIENT_SECRET,
+        tenant_id=TENANT_ID,
+        subscription_id=SUBSCRIPTION_ID,
+    )
+
+    registry_credentials = ImageRegistryCredential(
+        server=f"{REGISTRY_NAME}.azurecr.io", **registry_plain_creds
+    )
+    ci_client = ContainerInstanceManagementClient(
+        credential, subscription_id=SUBSCRIPTION_ID
+    )
+    resource_group = {"location": RG_LOCATION, "name": RG_NAME}
+    create_container_group(
+        ci_client,
+        resource_group,
+        dataset_id,
+        f"{REGISTRY_NAME}.azurecr.io/servereo:latest",
+        registry_credentials,
+    )
+
 
 def get_cr_credentials(client_id, client_secret, tenant_id, subscription_id):
-    sp = ServicePrincipalCredentials(client_id=client_id,secret=client_secret,tenant=tenant_id)
+    sp = ServicePrincipalCredentials(
+        client_id=client_id, secret=client_secret, tenant=tenant_id
+    )
     cl = ContainerRegistryManagementClient(sp, subscription_id=subscription_id)
-    creds = cl.registries.list_credentials('alpha', 'swotregistry')
+    creds = cl.registries.list_credentials(RG_NAME, REGISTRY_NAME)
     username = creds.username
     password = creds.passwords[0].value
 
-    creds = {'username': username, 'password': password}
+    creds = {"username": username, "password": password}
 
     return creds
 
+
 def create_container_group(
-    ci_client, resource_group, container_group_name, container_image_name, registry_credentials
+    ci_client,
+    resource_group,
+    container_group_name,
+    container_image_name,
+    registry_credentials,
 ):
     """Creates a container group with a single container.
 
@@ -77,7 +107,7 @@ def create_container_group(
         requests=container_resource_requests
     )
     container = Container(
-        name='mycontainername',
+        name="mycontainername",
         image=container_image_name,
         resources=container_resource_requirements,
     )
@@ -87,7 +117,7 @@ def create_container_group(
         location=resource_group["location"],
         containers=[container],
         os_type=OperatingSystemTypes.linux,
-        image_registry_credentials=[registry_credentials]
+        image_registry_credentials=[registry_credentials],
     )
 
     # Create the container group
