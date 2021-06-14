@@ -4,7 +4,7 @@ import azure.functions as func
 from pymongo import MongoClient
 import os
 from bson.objectid import ObjectId
-from . import standardize
+from utils.standardize import extract
 from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient
 from uuid import uuid4
 import tempfile
@@ -29,7 +29,7 @@ def main(msg: func.QueueMessage) -> None:
     db = MongoClient(MONGO_DB_CONNECTION_STRING).get_database()
     col = db.get_collection(COLLECTION_NAME)
     upl = col.find_one({"_id": ObjectId(upload_id)})
-    col.update_one({"_id": ObjectId(upload_id)}, {"status": "processing"})
+    col.update_one({"_id": ObjectId(upload_id)}, {"$set": {"status": "processing"}})
 
     is_overwriting = upl["overwriting"]
     in_container_name = upl["containerName"]
@@ -49,7 +49,7 @@ def main(msg: func.QueueMessage) -> None:
         tmpname = fp.name
         fp.write(bc.download_blob().readall())
         fp.flush()
-        datapoints = standardize.extract(tmpname)
+        datapoints = extract(tmpname)
         for datapoint in datapoints:
             datapoint_collection = db.get_collection("datapoints")
             datapoint_collection.insert_one(
@@ -65,4 +65,4 @@ def main(msg: func.QueueMessage) -> None:
         fp.close()
         os.remove(tmpname)
 
-    col.update_one({"_id": ObjectId(upload_id)}, {"status": "ready"})
+    col.update_one({"_id": ObjectId(upload_id)}, {"$set": {"status": "ready"}})

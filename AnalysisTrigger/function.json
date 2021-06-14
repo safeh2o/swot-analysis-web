@@ -11,15 +11,8 @@
     {
       "type": "blob",
       "direction": "out",
-      "name": "annpayload",
-      "path": "queue-ann/{blobName}",
-      "connection": "AzureWebJobsStorage"
-    },
-    {
-      "type": "blob",
-      "direction": "out",
-      "name": "eopayload",
-      "path": "queue-eo/{blobName}",
+      "name": "output",
+      "path": "%ANALYSIS_CONTAINER%/{datasetId}.csv",
       "connection": "AzureWebJobsStorage"
     }
   ]
