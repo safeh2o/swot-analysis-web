@@ -1,58 +1,57 @@
-import os, uuid
-from dotenv import load_dotenv
-from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient
-from azure.core.exceptions import ResourceExistsError
+import os
 from swotann.nnetwork import NNetwork
 
-load_dotenv()
+import utils
+import traceback
 
-AZURE_STORAGE_KEY = os.getenv('AZURE_STORAGE_KEY')
-SRC_CONTAINER_NAME = os.getenv('SRC_CONTAINER_NAME')
-DEST_CONTAINER_NAME = os.getenv('DEST_CONTAINER_NAME')
+ANALYSIS_METHOD = utils.AnalysisMethod.ANN
 
-def generate_random_filename(extension="csv"):
-    return str(uuid.uuid4()) + f'.{extension}'
-
-def get_or_create_container(service_client, container_name):    
-    try:
-        container_client = service_client.create_container(container_name)
-    except ResourceExistsError:
-        container_client = service_client.get_container_client(container_name)
-    
-    return container_client
+utils.set_logger(ANALYSIS_METHOD)
 
 
 def process_queue():
-    blob_service_client = BlobServiceClient.from_connection_string(AZURE_STORAGE_KEY)
+    input_filename = utils.download_src_blob()
+    network_count = os.getenv("NETWORK_COUNT", None)
+    epochs = os.getenv("EPOCHS", None)
+    dataset_id = os.getenv("DATASET_ID", None)
 
-    src_container_client = get_or_create_container(blob_service_client, SRC_CONTAINER_NAME)
+    output_dirname = dataset_id
+    os.mkdir(output_dirname)
 
-    blobs_list = src_container_client.list_blobs()
-    for blob in blobs_list:
-        input_file = generate_random_filename()
-        # download blob and save
-        with open(input_file, 'wb') as downloaded_file:
-            downloaded_file.write(src_container_client.download_blob(blob).readall())
-        # run swot analysis on downloaded blob
+    # run swot analysis on downloaded blob
+    if network_count and epochs:
+        ann = NNetwork(int(network_count), int(epochs))
+    elif network_count:
+        ann = NNetwork(network_count=int(network_count))
+    elif epochs:
+        ann = NNetwork(epochs=int(epochs))
+    else:
         ann = NNetwork()
-        results_file = generate_random_filename()
-        report_file = results_file.replace('.csv', '.html')
-        ann.run_swot(input_file, results_file, report_file)
+
+    # results filename will be the same as the input filename, but that's OK because they'll live in different directories
+    results_file = os.path.join(output_dirname, input_filename)
+    report_file = results_file.replace(".csv", ".html")
+    ann.run_swot(input_filename, results_file, report_file)
+
+    output_files = [
+        results_file,
+        report_file,
+        report_file.replace(".html", "-frc.jpg"),
+        report_file.replace(".html", ".png"),
+    ]
+
+    utils.upload_files(output_files)
 
 
-        output_files = [
-            results_file,
-            report_file,
-            report_file.replace('.html','-frc.jpg'),
-            report_file.replace('.html','.png')
-        ]
-
-        out_container_client = get_or_create_container(blob_service_client, DEST_CONTAINER_NAME)
-
-        for out_file in output_files:
-            with open(out_file, 'rb') as out_fp:
-                out_container_client.upload_blob(out_file, data=out_fp)
-
-if __name__ == '__main__':
-    process_queue()
-
+if __name__ == "__main__":
+    try:
+        process_queue()
+        message = "OK"
+        status = utils.Status.SUCCESS
+    except Exception as ex:
+        message = "".join(
+            traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)
+        )
+        status = utils.Status.FAIL
+    finally:
+        utils.update_status(ANALYSIS_METHOD, status, message)

@@ -9,6 +9,31 @@ from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient
 from uuid import uuid4
 import tempfile
 
+import logging
+import socket
+from logging.handlers import SysLogHandler
+
+PAPERTRAIL_ADDRESS = os.getenv("PAPERTRAIL_ADDRESS")
+PAPERTRAIL_PORT = int(os.getenv("PAPERTRAIL_PORT", 0))
+
+
+class ContextFilter(logging.Filter):
+    hostname = socket.gethostname()
+
+    def filter(self, record):
+        record.hostname = ContextFilter.hostname
+        return True
+
+
+syslog = SysLogHandler(address=(PAPERTRAIL_ADDRESS, PAPERTRAIL_PORT))
+syslog.addFilter(ContextFilter())
+format = "%(asctime)s %(hostname)s SWOT-FUNCTIONS-UPLOAD: %(message)s"
+formatter = logging.Formatter(format, datefmt="%b %d %H:%M:%S")
+syslog.setFormatter(formatter)
+logger = logging.getLogger()
+logger.addHandler(syslog)
+logger.setLevel(logging.INFO)
+
 
 def generate_random_filename(extension="csv"):
     return str(uuid4()) + f".{extension}"

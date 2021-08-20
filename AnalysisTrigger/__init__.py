@@ -1,5 +1,3 @@
-import logging
-
 import azure.functions as func
 
 from azure.mgmt.containerinstance import ContainerInstanceManagementClient
@@ -11,15 +9,24 @@ from azure.mgmt.containerinstance.models import (
     ResourceRequirements,
     OperatingSystemTypes,
     ImageRegistryCredential,
+    ContainerGroupRestartPolicy,
+    EnvironmentVariable,
 )
 from azure.identity import ClientSecretCredential
-from msrestazure.azure_active_directory import ServicePrincipalCredentials
 import os
 from utils.standardize import Datapoint
 from pymongo import MongoClient
-from pymongo.cursor import Cursor
 from bson import ObjectId
 
+import logging
+import socket
+from logging.handlers import SysLogHandler
+
+PAPERTRAIL_ADDRESS = os.getenv("PAPERTRAIL_ADDRESS")
+PAPERTRAIL_PORT = int(os.getenv("PAPERTRAIL_PORT", 0))
+AZURE_STORAGE_KEY = os.getenv("AzureWebJobsStorage")
+ANALYSIS_CONTAINER_NAME = os.getenv("ANALYSIS_CONTAINER_NAME")
+RESULTS_CONTAINER_NAME = os.getenv("RESULTS_CONTAINER_NAME")
 TENANT_ID = os.getenv("TENANT_ID")
 CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
@@ -29,6 +36,24 @@ RG_LOCATION = os.getenv("RG_LOCATION")
 RG_NAME = os.getenv("RG_NAME")
 MONGODB_CONNECTION_STRING = os.getenv("MONGODB_CONNECTION_STRING")
 CONTAINER_NAMES = "serverann,servereo"
+
+
+class ContextFilter(logging.Filter):
+    hostname = socket.gethostname()
+
+    def filter(self, record):
+        record.hostname = ContextFilter.hostname
+        return True
+
+
+syslog = SysLogHandler(address=(PAPERTRAIL_ADDRESS, PAPERTRAIL_PORT))
+syslog.addFilter(ContextFilter())
+format = "%(asctime)s %(hostname)s SWOT-FUNCTIONS-ANALYSIS: %(message)s"
+formatter = logging.Formatter(format, datefmt="%b %d %H:%M:%S")
+syslog.setFormatter(formatter)
+logger = logging.getLogger()
+logger.addHandler(syslog)
+logger.setLevel(logging.INFO)
 
 
 def datapoint_eq(datapoint1, datapoint2):
@@ -55,7 +80,10 @@ def remove_duplicates(datapoints: list[dict]) -> list[Datapoint]:
     return resolved_datapoints
 
 
-def main(msg: func.QueueMessage, output: func.Out[bytes]) -> None:
+def main(
+    msg: func.QueueMessage,
+    output: func.Out[bytes],
+) -> None:
     logging.info(
         "Python queue trigger function processed a queue item: %s",
         msg.get_body().decode("utf-8"),
@@ -82,26 +110,32 @@ def main(msg: func.QueueMessage, output: func.Out[bytes]) -> None:
 
     output.set("\n".join(lines))
 
-    credential = ClientSecretCredential(
-        client_id=CLIENT_ID,
-        client_secret=CLIENT_SECRET,
-        tenant_id=TENANT_ID,
+    sp = ClientSecretCredential(
+        client_id=CLIENT_ID, client_secret=CLIENT_SECRET, tenant_id=TENANT_ID
     )
 
     registry_plain_creds = get_cr_credentials(
-        client_id=CLIENT_ID,
-        client_secret=CLIENT_SECRET,
-        tenant_id=TENANT_ID,
+        sp=sp,
         subscription_id=SUBSCRIPTION_ID,
     )
 
     registry_credentials = ImageRegistryCredential(
         server=f"{REGISTRY_NAME}.azurecr.io", **registry_plain_creds
     )
-    ci_client = ContainerInstanceManagementClient(
-        credential, subscription_id=SUBSCRIPTION_ID
-    )
+    ci_client = ContainerInstanceManagementClient(sp, subscription_id=SUBSCRIPTION_ID)
     resource_group = {"location": RG_LOCATION, "name": RG_NAME}
+
+    env_dict = {
+        "AZURE_STORAGE_KEY": AZURE_STORAGE_KEY,
+        "MONGODB_CONNECTION_STRING": MONGODB_CONNECTION_STRING,
+        "BLOB_NAME": f"{dataset_id}.csv",
+        "DATASET_ID": dataset_id,
+        "SRC_CONTAINER_NAME": ANALYSIS_CONTAINER_NAME,
+        "DEST_CONTAINER_NAME": RESULTS_CONTAINER_NAME,
+        "CONFIDENCE_LEVEL": dataset["confidenceLevel"],
+        "MAX_DURATION": dataset["maxDuration"],
+    }
+
     create_container_group(
         ci_client,
         resource_group,
@@ -111,13 +145,11 @@ def main(msg: func.QueueMessage, output: func.Out[bytes]) -> None:
             for container_name in CONTAINER_NAMES.split(",")
         ],
         registry_credentials,
+        env_dict,
     )
 
 
-def get_cr_credentials(client_id, client_secret, tenant_id, subscription_id):
-    sp = ServicePrincipalCredentials(
-        client_id=client_id, secret=client_secret, tenant=tenant_id
-    )
+def get_cr_credentials(sp, subscription_id):
     cl = ContainerRegistryManagementClient(sp, subscription_id=subscription_id)
     creds = cl.registries.list_credentials(RG_NAME, REGISTRY_NAME)
     username = creds.username
@@ -129,7 +161,7 @@ def get_cr_credentials(client_id, client_secret, tenant_id, subscription_id):
 
 
 def resolve_base_name(image_name):
-    return image_name.split(".")[0]
+    return image_name.split("/")[-1].split(":")[0]
 
 
 def create_container_group(
@@ -138,6 +170,7 @@ def create_container_group(
     container_group_name,
     container_image_names,
     registry_credentials,
+    env_dict={},
 ):
     """Creates a container group with a single container.
 
@@ -155,6 +188,11 @@ def create_container_group(
     print("Creating container group '{0}'...".format(container_group_name))
 
     # Configure the container
+
+    base_env = [
+        EnvironmentVariable(name=key, value=value) for (key, value) in env_dict.items()
+    ]
+
     container_resource_requests = ResourceRequests(memory_in_gb=1.5, cpu=1.0)
     container_resource_requirements = ResourceRequirements(
         requests=container_resource_requests
@@ -165,6 +203,7 @@ def create_container_group(
             name=resolve_base_name(container_image_name),
             image=container_image_name,
             resources=container_resource_requirements,
+            environment_variables=base_env,
         )
         containers.append(container)
 
@@ -174,6 +213,7 @@ def create_container_group(
         containers=containers,
         os_type=OperatingSystemTypes.linux,
         image_registry_credentials=[registry_credentials],
+        restart_policy=ContainerGroupRestartPolicy.NEVER,
     )
 
     # Create the container group
@@ -186,4 +226,4 @@ def create_container_group(
         resource_group["name"], container_group_name
     )
 
-    print("Container group created")
+    logging.info(f"Container group {container_group.name} created")

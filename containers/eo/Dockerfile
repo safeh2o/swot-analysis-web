@@ -16,13 +16,17 @@ RUN apt update -y && apt install -y \
 
 RUN git clone https://github.com/safeh2o/swot-octave-analysis
 
-COPY requirements.txt .
+COPY eo/requirements.txt .
 
 RUN ["pip3", "install", "-r", "requirements.txt"]
 
 RUN mkdir -p output/downloads \
     output/octave
 
-COPY . /app
+COPY eo/ /app
 
-ENTRYPOINT ["python3", "upload.py"]
+COPY utils.py /app
+
+WORKDIR /app/swot-octave-analysis/EngineeringOptimizationModel
+
+ENTRYPOINT ["python3", "/app/upload.py"]

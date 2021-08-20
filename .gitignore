@@ -132,3 +132,4 @@ local.settings.json
 
 dist/
 node_modules/
+.vscode/settings.json
