@@ -34,11 +34,11 @@ if __name__ == "__main__":
     try:
         process_queue()
         message = "OK"
-        status = utils.Status.SUCCESS
+        success = True
     except Exception as ex:
         message = "".join(
             traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)
         )
-        status = utils.Status.FAIL
+        success = False
     finally:
-        utils.update_status(ANALYSIS_METHOD, status, message)
+        utils.update_status(ANALYSIS_METHOD, success, message)

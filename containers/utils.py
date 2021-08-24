@@ -9,8 +9,8 @@ from bson import ObjectId
 
 
 class Status(Enum):
-    FAIL = 1
-    SUCCESS = 0
+    FAIL = 0
+    SUCCESS = 1
 
 
 class AnalysisMethod(Enum):
@@ -76,14 +76,14 @@ def download_src_blob() -> str:
     return input_filename
 
 
-def update_status(analysis_method: AnalysisMethod, status: Status, message: str):
+def update_status(analysis_method: AnalysisMethod, success: bool, message: str):
     db = MongoClient(MONGODB_CONNECTION_STRING).get_database()
     dataset_collection = db.get_collection("datasets")
 
     update_operation = {
         "$set": {
             f"status.{analysis_method.value}": {
-                "status": status.value,
+                "success": success,
                 "message": message,
             }
         }
