@@ -3,9 +3,10 @@ import socket
 from logging.handlers import SysLogHandler
 import os
 from enum import Enum
-from azure.storage.blob import BlobServiceClient
+from azure.storage.blob import BlobServiceClient, ContentSettings
 from pymongo import MongoClient
 from bson import ObjectId
+import mimetypes
 
 
 class Status(Enum):
@@ -53,7 +54,11 @@ def upload_files(file_paths):
 
     for out_file in file_paths:
         with open(out_file, "rb") as out_fp:
-            container_client.upload_blob(out_file, data=out_fp, overwrite=True)
+            (content_type, content_encoding) = mimetypes.guess_type(out_file)
+            content_settings = ContentSettings(content_type, content_encoding)
+            container_client.upload_blob(
+                out_file, data=out_fp, overwrite=True, content_settings=content_settings
+            )
         logging.info(f"uploaded file: {out_file}")
 
 
