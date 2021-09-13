@@ -96,6 +96,10 @@ class Datapoint(object):
         return lines
 
 
+def round_time(dt: datetime):
+    return dt - timedelta(microseconds=int(dt.strftime("%f")))
+
+
 def extract(filename: str) -> list[Datapoint]:
     datapoints = []
 
@@ -115,8 +119,9 @@ def extract(filename: str) -> list[Datapoint]:
         line = line.strip().split(",")
 
         try:
-            ts_date = datetime(1900, 1, 1) + timedelta(
-                days=float(line[indices["ts_datetime"]])
+            ts_date = round_time(
+                datetime(1900, 1, 1)
+                + timedelta(days=float(line[indices["ts_datetime"]]))
             )
         except ValueError:
             try:
@@ -124,16 +129,25 @@ def extract(filename: str) -> list[Datapoint]:
                     line[indices["ts_datetime"]], "%Y-%m-%dT%H:%M"
                 )
             except ValueError:
+                ts_date = datetime.strptime(
+                    line[indices["ts_datetime"]], "%Y-%m-%dT%H:%M:%S.%f%z"
+                )
+            except ValueError:
                 ts_date = None
 
         try:
-            hh_date = datetime(1900, 1, 1) + timedelta(
-                days=float(line[indices["hh_datetime"]])
+            hh_date = round_time(
+                datetime(1900, 1, 1)
+                + timedelta(days=float(line[indices["hh_datetime"]]))
             )
         except ValueError:
             try:
                 hh_date = datetime.strptime(
                     line[indices["hh_datetime"]], "%Y-%m-%dT%H:%M"
+                )
+            except ValueError:
+                hh_date = datetime.strptime(
+                    line[indices["hh_datetime"]], "%Y-%m-%dT%H:%M:%S.%f%z"
                 )
             except ValueError:
                 hh_date = None

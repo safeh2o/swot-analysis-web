@@ -97,15 +97,27 @@ def main(
     datapoint_collection = db.get_collection("datapoints")
     dataset = dataset_collection.find_one({"_id": ObjectId(dataset_id)})
     (start_date, end_date) = (dataset["startDate"], dataset["endDate"])
-    datapoint_documents = datapoint_collection.find(
-        {
-            "tsDate": {"$gt": start_date, "$lt": end_date},
-            "overwriting": {"$ne": None},
-            "dateUploaded": {"$ne": None},
-        }
+    datapoint_documents = list(
+        datapoint_collection.find(
+            {
+                "tsDate": {"$gt": start_date, "$lt": end_date},
+                "overwriting": {"$ne": None},
+                "dateUploaded": {"$ne": None},
+            }
+        ).sort("tsDate", 1)
     )
 
-    resolved_datapoints = remove_duplicates(list(datapoint_documents))
+    resolved_datapoints = remove_duplicates(datapoint_documents)
+    dataset_collection.update_one(
+        {"_id": ObjectId(dataset_id)},
+        {
+            "$set": {
+                "first_sample": resolved_datapoints[0].ts_date,
+                "last_sample": resolved_datapoints[-1].ts_date,
+                "total_samples": len(resolved_datapoints),
+            }
+        },
+    )
     lines = Datapoint.get_csv_lines(resolved_datapoints)
 
     output.set("\n".join(lines))

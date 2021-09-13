@@ -10,3 +10,5 @@ local.settings.json
 # To prevent storing dev/temporary container data
 *.csv
 /tmp/*
+.vscode/
+.venv/

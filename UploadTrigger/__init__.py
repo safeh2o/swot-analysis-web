@@ -1,3 +1,4 @@
+from io import TextIOWrapper
 import logging
 
 import azure.functions as func
@@ -12,6 +13,8 @@ import tempfile
 import logging
 import socket
 from logging.handlers import SysLogHandler
+
+import openpyxl, csv
 
 PAPERTRAIL_ADDRESS = os.getenv("PAPERTRAIL_ADDRESS")
 PAPERTRAIL_PORT = int(os.getenv("PAPERTRAIL_PORT", 0))
@@ -37,6 +40,24 @@ logger.setLevel(logging.INFO)
 
 def generate_random_filename(extension="csv"):
     return str(uuid4()) + f".{extension}"
+
+
+def convert_xlsx_blob_to_csv(blob_client: BlobClient, fp: TextIOWrapper):
+    xlsx_fp = tempfile.NamedTemporaryFile(suffix=".xlsx")
+    xlsx_fp.write(blob_client.download_blob().readall())
+
+    wb = openpyxl.load_workbook(xlsx_fp.name)
+    sh = wb.active
+    wr = csv.writer(fp, quoting=csv.QUOTE_MINIMAL)
+
+    for row in sh.rows:
+        rowvalues = []
+        for cell in row:
+            rowvalues.append(cell.value)
+        wr.writerow(rowvalues)
+
+    fp.flush()
+    xlsx_fp.close()
 
 
 def main(msg: func.QueueMessage) -> None:
@@ -70,10 +91,19 @@ def main(msg: func.QueueMessage) -> None:
         # standardize it, returning list of DataPoint objects
         # add overwriting flag
         bc = blob_cc.get_blob_client(blob)
-        fp = tempfile.NamedTemporaryFile(delete=False)
+        fp = tempfile.NamedTemporaryFile(suffix=".csv", mode="w")
         tmpname = fp.name
-        fp.write(bc.download_blob().readall())
-        fp.flush()
+        # handle blob by extension
+        ext = blob.name.split(".")[-1]
+        if ext == "xlsx":
+            # convert xlsx to csv and write to fp
+            convert_xlsx_blob_to_csv(bc, fp)
+        elif ext == "csv":
+            fp.write(bc.download_blob().content_as_text())
+            fp.flush()
+        else:
+            raise TypeError(f"Invalid file extension {ext}")
+
         datapoints = extract(tmpname)
         for datapoint in datapoints:
             datapoint_collection = db.get_collection("datapoints")
@@ -88,6 +118,5 @@ def main(msg: func.QueueMessage) -> None:
                 )
             )
         fp.close()
-        os.remove(tmpname)
 
     col.update_one({"_id": ObjectId(upload_id)}, {"$set": {"status": "ready"}})
