@@ -80,17 +80,18 @@ def download_src_blob() -> str:
 
     return input_filename
 
-
-def update_status(analysis_method: AnalysisMethod, success: bool, message: str):
+def update_dataset(extra_data: dict):
     db = MongoClient(MONGODB_CONNECTION_STRING).get_database()
     dataset_collection = db.get_collection("datasets")
-
     update_operation = {
-        "$set": {
+        "$set": extra_data
+    }
+    dataset_collection.update_one({"_id": ObjectId(DATASET_ID)}, update_operation)
+
+def update_status(analysis_method: AnalysisMethod, success: bool, message: str):
+    update_dataset({
             f"status.{analysis_method.value}": {
                 "success": success,
                 "message": message,
             }
-        }
-    }
-    dataset_collection.update_one({"_id": ObjectId(DATASET_ID)}, update_operation)
+        })

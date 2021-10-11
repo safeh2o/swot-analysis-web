@@ -1,4 +1,4 @@
-import os, uuid, subprocess
+import os, glob, subprocess, json
 import utils
 import traceback
 
@@ -25,8 +25,18 @@ def process_queue():
         ]
     )
 
-    output_files = [os.path.join(out_dir, x) for x in os.listdir(out_dir)]
+    result_files = os.listdir(out_dir)
 
+    output_files = [os.path.join(out_dir, x) for x in result_files]
+
+    result_dict = {}
+
+    # get all json files and store in dict
+    for json_file in glob.glob(out_dir + os.path.sep + "*.json"):
+        with open(json_file, "r") as json_fp:
+            result_dict.update(json.load(json_fp))
+
+    utils.update_dataset({"eo": result_dict})
     utils.upload_files(output_files)
 
 

@@ -1,3 +1,4 @@
-git+git://github.com/safeh2o/swot-python-analysis@packaged
+git+git://github.com/safeh2o/swot-python-analysis@packaged_v2
 azure-storage-blob
 pymongo
+dnspython

@@ -14,3 +14,4 @@ pymongo
 azure-storage-blob
 black
 openpyxl
+dnspython

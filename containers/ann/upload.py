@@ -11,6 +11,7 @@ utils.set_logger(ANALYSIS_METHOD)
 
 def process_queue():
     input_filename = utils.download_src_blob()
+    storage_target = os.getenv("MAX_DURATION", 3)
     network_count = os.getenv("NETWORK_COUNT", None)
     epochs = os.getenv("EPOCHS", None)
     dataset_id = os.getenv("DATASET_ID", None)
@@ -31,7 +32,7 @@ def process_queue():
     # results filename will be the same as the input filename, but that's OK because they'll live in different directories
     results_file = os.path.join(output_dirname, input_filename)
     report_file = results_file.replace(".csv", ".html")
-    ann.run_swot(input_filename, results_file, report_file)
+    ann.run_swot(input_filename, results_file, report_file, storage_target)
 
     output_files = [
         results_file,

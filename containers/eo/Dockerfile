@@ -14,6 +14,7 @@ RUN apt update -y && apt install -y \
     git \
     zip
 
+ADD https://api.github.com/repos/safeh2o/swot-octave-analysis/git/refs/heads/master version.json
 RUN git clone https://github.com/safeh2o/swot-octave-analysis
 
 COPY eo/requirements.txt .

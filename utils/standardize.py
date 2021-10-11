@@ -111,12 +111,13 @@ def extract(filename: str) -> list[Datapoint]:
     for col in columns:
         indices[col] = [i for i, x in enumerate(header_line) if col in x][0]
 
-    for line in file:
+    for l in file:
         # Skip over lines without six elements and empty lines
-        if not line:
+        l = l.rstrip('\n')
+        if not l:
             continue
 
-        line = line.strip().split(",")
+        line = l.strip().split(",")
 
         try:
             ts_date = round_time(
@@ -129,11 +130,12 @@ def extract(filename: str) -> list[Datapoint]:
                     line[indices["ts_datetime"]], "%Y-%m-%dT%H:%M"
                 )
             except ValueError:
-                ts_date = datetime.strptime(
-                    line[indices["ts_datetime"]], "%Y-%m-%dT%H:%M:%S.%f%z"
-                )
-            except ValueError:
-                ts_date = None
+                try:
+                    ts_date = datetime.strptime(
+                        line[indices["ts_datetime"]], "%Y-%m-%dT%H:%M:%S.%f%z"
+                    )
+                except ValueError:
+                    ts_date = None
 
         try:
             hh_date = round_time(
@@ -146,11 +148,12 @@ def extract(filename: str) -> list[Datapoint]:
                     line[indices["hh_datetime"]], "%Y-%m-%dT%H:%M"
                 )
             except ValueError:
-                hh_date = datetime.strptime(
-                    line[indices["hh_datetime"]], "%Y-%m-%dT%H:%M:%S.%f%z"
-                )
-            except ValueError:
-                hh_date = None
+                try:
+                    hh_date = datetime.strptime(
+                        line[indices["hh_datetime"]], "%Y-%m-%dT%H:%M:%S.%f%z"
+                    )
+                except ValueError:
+                    hh_date = None
 
         try:
             ts_frc = float(line[indices["ts_frc"]])

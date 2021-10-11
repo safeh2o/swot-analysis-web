@@ -8,6 +8,7 @@ from bson.objectid import ObjectId
 from utils.standardize import extract
 from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient
 from uuid import uuid4
+import certifi
 import tempfile
 
 import logging
@@ -43,10 +44,11 @@ def generate_random_filename(extension="csv"):
 
 
 def convert_xlsx_blob_to_csv(blob_client: BlobClient, fp: TextIOWrapper):
-    xlsx_fp = tempfile.NamedTemporaryFile(suffix=".xlsx")
+    xlsx_fp = tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False)
     xlsx_fp.write(blob_client.download_blob().readall())
+    xlsx_fp.close()
 
-    wb = openpyxl.load_workbook(xlsx_fp.name)
+    wb = openpyxl.load_workbook(xlsx_fp.name, read_only=True)
     sh = wb.active
     wr = csv.writer(fp, quoting=csv.QUOTE_MINIMAL)
 
@@ -57,10 +59,12 @@ def convert_xlsx_blob_to_csv(blob_client: BlobClient, fp: TextIOWrapper):
         wr.writerow(rowvalues)
 
     fp.flush()
-    xlsx_fp.close()
+    wb.close()
+    os.remove(xlsx_fp.name)
 
 
 def main(msg: func.QueueMessage) -> None:
+    ca = certifi.where()
     msg_json = msg.get_json()
     upload_id = msg_json["uploadId"]
     logging.info(
@@ -68,11 +72,11 @@ def main(msg: func.QueueMessage) -> None:
         upload_id,
     )
 
-    MONGO_DB_CONNECTION_STRING = os.getenv("MONGODB_CONNECTION_STRING")
+    MONGODB_CONNECTION_STRING = os.getenv("MONGODB_CONNECTION_STRING")
     AZURE_STORAGE_CONNECTION_STRING = os.getenv("AzureWebJobsStorage")
     COLLECTION_NAME = os.getenv("COLLECTION_NAME")
 
-    db = MongoClient(MONGO_DB_CONNECTION_STRING).get_database()
+    db = MongoClient(MONGODB_CONNECTION_STRING, tlsCAFile=ca).get_database()
     col = db.get_collection(COLLECTION_NAME)
     upl = col.find_one({"_id": ObjectId(upload_id)})
     col.update_one({"_id": ObjectId(upload_id)}, {"$set": {"status": "processing"}})
@@ -91,7 +95,7 @@ def main(msg: func.QueueMessage) -> None:
         # standardize it, returning list of DataPoint objects
         # add overwriting flag
         bc = blob_cc.get_blob_client(blob)
-        fp = tempfile.NamedTemporaryFile(suffix=".csv", mode="w")
+        fp = tempfile.NamedTemporaryFile(suffix=".csv", mode="w", delete=False)
         tmpname = fp.name
         # handle blob by extension
         ext = blob.name.split(".")[-1]
@@ -104,6 +108,7 @@ def main(msg: func.QueueMessage) -> None:
         else:
             raise TypeError(f"Invalid file extension {ext}")
 
+        fp.close()
         datapoints = extract(tmpname)
         for datapoint in datapoints:
             datapoint_collection = db.get_collection("datapoints")
@@ -117,6 +122,6 @@ def main(msg: func.QueueMessage) -> None:
                     overwriting=is_overwriting,  # can be referenced by aggregation, but doing this for simplicity
                 )
             )
-        fp.close()
+        os.remove(tmpname)
 
     col.update_one({"_id": ObjectId(upload_id)}, {"$set": {"status": "ready"}})
