@@ -2,6 +2,7 @@ import os
 from swotann.nnetwork import NNetwork
 
 import utils
+from standalone_html import make_html_images_inline
 import traceback
 
 ANALYSIS_METHOD = utils.AnalysisMethod.ANN
@@ -34,12 +35,11 @@ def process_queue():
     report_file = results_file.replace(".csv", ".html")
     ann.run_swot(input_filename, results_file, report_file, storage_target)
 
-    output_files = [
-        results_file,
-        report_file,
-        report_file.replace(".html", "-frc.jpg"),
-        report_file.replace(".html", ".png"),
-    ]
+    # make report file standalone (convert all images to base64)
+    report_file_standalone = report_file.replace('.html', '-standalone.html')
+    make_html_images_inline(report_file, report_file_standalone)
+
+    output_files = [os.path.join(output_dirname, file) for file in os.listdir(output_dirname)]
 
     utils.upload_files(output_files)
 
