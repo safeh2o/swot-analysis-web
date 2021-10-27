@@ -97,12 +97,18 @@ def main(
     datapoint_collection = db.get_collection("datapoints")
     dataset = dataset_collection.find_one({"_id": ObjectId(dataset_id)})
     (start_date, end_date) = (dataset["startDate"], dataset["endDate"])
+
+    date_filter = {"$lt": end_date}
+    if start_date:
+        date_filter["$gt"] = start_date
+
     datapoint_documents = list(
         datapoint_collection.find(
             {
-                "tsDate": {"$gt": start_date, "$lt": end_date},
+                "tsDate": date_filter,
                 "overwriting": {"$ne": None},
                 "dateUploaded": {"$ne": None},
+                "fieldsite": dataset["fieldsite"],
             }
         ).sort("tsDate", 1)
     )
@@ -112,9 +118,9 @@ def main(
         {"_id": ObjectId(dataset_id)},
         {
             "$set": {
-                "first_sample": resolved_datapoints[0].ts_date,
-                "last_sample": resolved_datapoints[-1].ts_date,
-                "total_samples": len(resolved_datapoints),
+                "firstSample": resolved_datapoints[0].ts_date,
+                "lastSample": resolved_datapoints[-1].ts_date,
+                "nSamples": len(resolved_datapoints),
             }
         },
     )
