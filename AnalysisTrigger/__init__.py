@@ -152,6 +152,11 @@ def main(
         "DEST_CONTAINER_NAME": RESULTS_CONTAINER_NAME,
         "CONFIDENCE_LEVEL": dataset["confidenceLevel"],
         "MAX_DURATION": dataset["maxDuration"],
+        "TENANT_ID": TENANT_ID,
+        "CLIENT_ID": CLIENT_ID,
+        "CLIENT_SECRET": CLIENT_SECRET,
+        "SUBSCRIPTION_ID": SUBSCRIPTION_ID,
+        "RG_NAME": RG_NAME,
     }
 
     create_container_group(
