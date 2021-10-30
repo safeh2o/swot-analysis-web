@@ -105,7 +105,7 @@ def is_all_analysis_complete() -> bool:
     dataset = dataset_collection.find_one({"_id": ObjectId(DATASET_ID)})
     return all(
         [
-            dataset[f"status.{analysis_method.value}"] is not None
+            "status" in dataset and analysis_method.value in dataset["status"]
             for analysis_method in AnalysisMethod
         ]
     )

@@ -17,6 +17,7 @@ import os
 from utils.standardize import Datapoint
 from pymongo import MongoClient
 from bson import ObjectId
+import certifi
 
 import logging
 import socket
@@ -84,15 +85,17 @@ def main(
     msg: func.QueueMessage,
     output: func.Out[bytes],
 ) -> None:
+
     logging.info(
         "Python queue trigger function processed a queue item: %s",
         msg.get_body().decode("utf-8"),
     )
 
+    ca = certifi.where()
     msg_json = msg.get_json()
     dataset_id = msg_json["datasetId"]
 
-    db = MongoClient(MONGODB_CONNECTION_STRING).get_database()
+    db = MongoClient(MONGODB_CONNECTION_STRING, tlsCAFile=ca).get_database()
     dataset_collection = db.get_collection("datasets")
     datapoint_collection = db.get_collection("datapoints")
     dataset = dataset_collection.find_one({"_id": ObjectId(dataset_id)})
