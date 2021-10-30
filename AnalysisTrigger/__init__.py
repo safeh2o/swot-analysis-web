@@ -17,6 +17,7 @@ import os
 from utils.standardize import Datapoint
 from pymongo import MongoClient
 from bson import ObjectId
+import certifi
 
 import logging
 import socket
@@ -84,15 +85,17 @@ def main(
     msg: func.QueueMessage,
     output: func.Out[bytes],
 ) -> None:
+
     logging.info(
         "Python queue trigger function processed a queue item: %s",
         msg.get_body().decode("utf-8"),
     )
 
+    ca = certifi.where()
     msg_json = msg.get_json()
     dataset_id = msg_json["datasetId"]
 
-    db = MongoClient(MONGODB_CONNECTION_STRING).get_database()
+    db = MongoClient(MONGODB_CONNECTION_STRING, tlsCAFile=ca).get_database()
     dataset_collection = db.get_collection("datasets")
     datapoint_collection = db.get_collection("datapoints")
     dataset = dataset_collection.find_one({"_id": ObjectId(dataset_id)})
@@ -152,6 +155,11 @@ def main(
         "DEST_CONTAINER_NAME": RESULTS_CONTAINER_NAME,
         "CONFIDENCE_LEVEL": dataset["confidenceLevel"],
         "MAX_DURATION": dataset["maxDuration"],
+        "TENANT_ID": TENANT_ID,
+        "CLIENT_ID": CLIENT_ID,
+        "CLIENT_SECRET": CLIENT_SECRET,
+        "SUBSCRIPTION_ID": SUBSCRIPTION_ID,
+        "RG_NAME": RG_NAME,
     }
 
     create_container_group(

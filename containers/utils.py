@@ -7,6 +7,9 @@ from azure.storage.blob import BlobServiceClient, ContentSettings
 from pymongo import MongoClient
 from bson import ObjectId
 import mimetypes
+from pymongo.collection import Collection
+from azure.mgmt.containerinstance import ContainerInstanceManagementClient
+from azure.identity import ClientSecretCredential
 
 
 class Status(Enum):
@@ -32,6 +35,11 @@ PAPERTRAIL_PORT = int(os.getenv("PAPERTRAIL_PORT", 0))
 AZURE_STORAGE_KEY = os.getenv("AZURE_STORAGE_KEY")
 MONGODB_CONNECTION_STRING = os.getenv("MONGODB_CONNECTION_STRING")
 DATASET_ID = os.getenv("DATASET_ID")
+TENANT_ID = os.getenv("TENANT_ID")
+CLIENT_ID = os.getenv("CLIENT_ID")
+CLIENT_SECRET = os.getenv("CLIENT_SECRET")
+SUBSCRIPTION_ID = os.getenv("SUBSCRIPTION_ID")
+RG_NAME = os.getenv("RG_NAME")
 blob_service_client = BlobServiceClient.from_connection_string(AZURE_STORAGE_KEY)
 
 
@@ -80,18 +88,47 @@ def download_src_blob() -> str:
 
     return input_filename
 
+
 def update_dataset(extra_data: dict):
-    db = MongoClient(MONGODB_CONNECTION_STRING).get_database()
-    dataset_collection = db.get_collection("datasets")
-    update_operation = {
-        "$set": extra_data
-    }
+    dataset_collection = get_dataset_collection()
+    update_operation = {"$set": extra_data}
     dataset_collection.update_one({"_id": ObjectId(DATASET_ID)}, update_operation)
 
+
+def get_dataset_collection() -> Collection:
+    db = MongoClient(MONGODB_CONNECTION_STRING).get_database()
+    return db.get_collection("datasets")
+
+
+def is_all_analysis_complete() -> bool:
+    dataset_collection = get_dataset_collection()
+    dataset = dataset_collection.find_one({"_id": ObjectId(DATASET_ID)})
+    return all(
+        [
+            "status" in dataset and analysis_method.value in dataset["status"]
+            for analysis_method in AnalysisMethod
+        ]
+    )
+
+
+def remove_container_group():
+    sp = ClientSecretCredential(
+        client_id=CLIENT_ID, client_secret=CLIENT_SECRET, tenant_id=TENANT_ID
+    )
+    ci_client = ContainerInstanceManagementClient(sp, subscription_id=SUBSCRIPTION_ID)
+    logging.info(f"Deleting container group {DATASET_ID}")
+    ci_client.container_groups.begin_delete(RG_NAME, DATASET_ID)
+
+
 def update_status(analysis_method: AnalysisMethod, success: bool, message: str):
-    update_dataset({
+    update_dataset(
+        {
             f"status.{analysis_method.value}": {
                 "success": success,
                 "message": message,
             }
-        })
+        }
+    )
+
+    if is_all_analysis_complete():
+        remove_container_group()
